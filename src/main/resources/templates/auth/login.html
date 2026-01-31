@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - File Archive System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #1e3a8a 0%, #0c4a6e 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3a8a 0%, #0c4a6e 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1rem;
+            opacity: 0.95;
+        }
+
+        .logo-container {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            display: inline-block;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .logo-container img {
+            display: block;
+            max-width: 150px;
+            height: auto;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .security-notice {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 15px;
+            margin-bottom: 30px;
+            border-radius: 4px;
+        }
+
+        .security-notice p {
+            color: #92400e;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+            font-family: inherit;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #1e3a8a;
+        }
+
+        .form-group input::placeholder {
+            color: #9ca3af;
+        }
+
+        .login-button {
+            background: linear-gradient(135deg, #1e3a8a 0%, #0c4a6e 100%);
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(30, 58, 138, 0.4);
+            width: 100%;
+        }
+
+        .login-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(30, 58, 138, 0.6);
+        }
+
+        .login-button:active {
+            transform: translateY(0);
+        }
+
+        .login-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .back-link a {
+            color: #1e3a8a;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+
+        .back-link a:hover {
+            color: #0c4a6e;
+            text-decoration: underline;
+        }
+
+        .error-message {
+            background: #fee2e2;
+            border-left: 4px solid #dc2626;
+            padding: 12px 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .error-message p {
+            color: #991b1b;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                max-width: 95%;
+            }
+
+            .header h1 {
+                font-size: 1.6rem;
+            }
+
+            .content {
+                padding: 30px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div class="logo-container">
+            <img src="/images/fas_logo.png" alt="File Archive System Logo"/>
+        </div>
+        <h1>File Archive System</h1>
+        <p>Secure Access Portal</p>
+    </div>
+
+    <div class="content">
+        <div class="security-notice">
+            <p>
+                <strong>Notice:</strong> This is a monitored system. All login attempts are logged and tracked.
+            </p>
+        </div>
+
+        <div id="errorMessage" class="error-message">
+            <p id="errorText"></p>
+        </div>
+
+        <form id="loginForm" action="/auth/login" method="POST">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input
+                        type="text"
+                        id="username"
+                        name="username"
+                        placeholder="Enter your username"
+                        required
+                        autocomplete="username"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="Enter your password"
+                        required
+                        autocomplete="current-password"
+                >
+            </div>
+
+            <button type="submit" class="login-button">
+                Login
+            </button>
+        </form>
+
+        <div class="back-link">
+            <a href="/">← Back to Home</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    const form = document.getElementById('loginForm');
+    const errorMessage = document.getElementById('errorMessage');
+    const errorText = document.getElementById('errorText');
+
+    // Check for error parameter in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('error')) {
+        errorText.textContent = 'Invalid username or password. Please try again.';
+        errorMessage.classList.add('show');
+    }
+
+    form.addEventListener('submit', function (e) {
+        // Clear any previous errors
+        errorMessage.classList.remove('show');
+    });
+</script>
+</body>
+</html>

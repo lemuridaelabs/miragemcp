@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Archive System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #1e3a8a 0%, #0c4a6e 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+        }
+
+        .top-login-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 14px 40px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 20px rgba(220, 38, 38, 0.5);
+            z-index: 100;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .top-login-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(220, 38, 38, 0.7);
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .top-login-button:active {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(220, 38, 38, 0.5);
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 80%;
+            width: 100%;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3a8a 0%, #0c4a6e 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+        }
+
+        .logo-container {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            display: inline-block;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .logo-container img {
+            display: block;
+            max-width: 200px;
+            height: auto;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal-overlay.hidden {
+            display: none;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+        }
+
+        .modal-header {
+            background: #dc2626;
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .modal-header h2 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .modal-header p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .modal-body p {
+            color: #333;
+            font-size: 1rem;
+            line-height: 1.8;
+            margin-bottom: 25px;
+        }
+
+        .modal-button {
+            background: #dc2626;
+            color: white;
+            border: none;
+            padding: 14px 40px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.2s;
+            display: block;
+            margin: 0 auto;
+            width: 100%;
+            max-width: 300px;
+        }
+
+        .modal-button:hover {
+            background: #b91c1c;
+            transform: translateY(-1px);
+        }
+
+        .modal-button:active {
+            transform: translateY(0);
+        }
+
+        .features {
+            margin-bottom: 40px;
+        }
+
+        .features h2 {
+            color: #333;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+        }
+
+        .feature-list {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+        }
+
+        .feature {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+        }
+
+        .feature-icon {
+            background: linear-gradient(135deg, #1e3a8a 0%, #0c4a6e 100%);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .feature-content h3 {
+            color: #333;
+            font-size: 1.2rem;
+            margin-bottom: 5px;
+        }
+
+        .feature-content p {
+            color: #666;
+            line-height: 1.6;
+        }
+
+
+        @media (max-width: 768px) {
+            .container {
+                max-width: 95%;
+            }
+
+            .feature-list {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .content {
+                padding: 30px 20px;
+            }
+
+            .features h2 {
+                font-size: 1.5rem;
+            }
+
+            .top-login-button {
+                top: 10px;
+                right: 10px;
+                padding: 12px 24px;
+                font-size: 0.95rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div id="authModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>
+                <span>⚠️</span>
+                Authorized Access Only
+            </h2>
+            <p>Security Notice</p>
+        </div>
+        <div class="modal-body">
+            <p>
+                This system is restricted to authorized users only. Unauthorized access attempts are logged
+                and may be subject to legal action.
+            </p>
+            <p>
+                By proceeding, you acknowledge that your activities are monitored and recorded in accordance
+                with our security policies.
+            </p>
+            <button class="modal-button" onclick="closeModal()">I Understand - Continue</button>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <button class="top-login-button" onclick="window.location.href='/auth/login'">
+        LOGIN
+    </button>
+
+    <div class="header">
+        <div class="logo-container">
+            <img src="/images/fas_logo.png" alt="File Archive System Logo"/>
+        </div>
+        <h1>File Archive System</h1>
+        <p>Intelligent Document Management & Retrieval</p>
+    </div>
+
+    <div class="content">
+        <div class="features">
+            <h2>System Features</h2>
+            <div class="feature-list">
+                <div class="feature">
+                    <div class="feature-icon">🤖</div>
+                    <div class="feature-content">
+                        <h3>AI-Powered Intelligence</h3>
+                        <p>Advanced machine learning algorithms provide intelligent search, automated categorization,
+                            and natural language processing for enhanced document discovery and analysis.</p>
+                    </div>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-icon">🔌</div>
+                    <div class="feature-content">
+                        <h3>MCP Support</h3>
+                        <p>Model-Context-Protocol service integration enables remote AI access and collaboration,
+                            allowing seamless interaction with AI assistants and tools through standardized
+                            protocols.</p>
+                    </div>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-icon">🔒</div>
+                    <div class="feature-content">
+                        <h3>Secure Storage</h3>
+                        <p>Enterprise-grade encryption ensures your sensitive documents remain protected with role-based
+                            access control and audit logging.</p>
+                    </div>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-icon">📊</div>
+                    <div class="feature-content">
+                        <h3>Analytics & Insights</h3>
+                        <p>Comprehensive analytics dashboard provides insights into document usage patterns, access
+                            trends, and system performance metrics.</p>
+                    </div>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-icon">⚡</div>
+                    <div class="feature-content">
+                        <h3>Real-Time Processing</h3>
+                        <p>Lightning-fast document indexing and retrieval with automated classification and metadata
+                            extraction for instant access.</p>
+                    </div>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-icon">🔄</div>
+                    <div class="feature-content">
+                        <h3>Version Control</h3>
+                        <p>Automatic version tracking and document history management ensures you never lose important
+                            changes or previous iterations.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    function closeModal() {
+        document.getElementById('authModal').classList.add('hidden');
+    }
+</script>
+</body>
+</html>

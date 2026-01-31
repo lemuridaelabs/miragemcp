@@ -1,0 +1,62 @@
+
+server:
+  port: ${SERVER_PORT:8989}
+  error:
+    whitelabel:
+      enabled: false
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+    include-exception: false
+    path: /error
+
+honeymcp:
+  server:
+    base-url: ${SERVER_BASEURL:http://localhost:8989}
+    file-base: ${SERVER_FILE_URL:/archive/files/}
+  dashboard:
+    access-token: ${DASHBOARD_ACCESS_TOKEN:*RANDOMTOKEN*}
+  alert:
+    delayMinutes: ${ALERTS_DELAYS_MINS:15}
+    checkPeriodMinutes: ${ALERTS_CHECK_MINS:15}
+    thresholds:
+      flagged: ${ALERTS_THRESHOLD_FLAGGED:125}
+      malicious: ${ALERTS_THRESHOLD_MALICIOUS:175}
+  event:
+    weights:
+      low: ${EVENTS_WEIGHT_LOW:25}
+      medium: ${EVENTS_WEIGHT_MEDIUM:50}
+      high: ${EVENTS_WEIGHT_HIGH:75}
+spring:
+  application:
+    name: honeymcp
+  jackson:
+    deserialization:
+      ACCEPT_EMPTY_ARRAY_AS_NULL_OBJECT: true
+  thymeleaf:
+    cache: false
+  web:
+    resources:
+      add-mappings: true
+  mvc:
+    throw-exception-if-no-handler-found: true
+  ai:
+    openai:
+      api-key: ${OPENAI_KEY:sk-dummy-key-please-set-OPENAI_KEY-environment-variable}
+      chat:
+        enabled: true
+        options:
+          response-format:
+            strict: true
+          model: ${OPENAI_MODEL:gpt-4o}
+  sql:
+    init:
+      mode: embedded
+      schema-locations: classpath:/sql/schema.sql
+      data-locations: optional:classpath:/sql/data.sql
+
+logging:
+  level:
+    org:
+      springframework:
+        jdbc=DEBUG:

@@ -1,0 +1,5 @@
+category,pattern,description,confidence_level,action,owasp_category
+path_traversal,\.\./|\.\.\\,Directory traversal attempt,high,block,A01:2021
+path_traversal,(?:%2e%2e[/\\]|\.\.%2f|\.\.%5c),Encoded directory traversal,high,block,A01:2021
+session_fixation,(?:jsessionid|phpsessid|aspsessionid)=,Session ID in URI,medium,flag,A07:2021
+deserialization,(?:rO0|aced0005|H4sI),Serialized object patterns,high,block,A08:2021

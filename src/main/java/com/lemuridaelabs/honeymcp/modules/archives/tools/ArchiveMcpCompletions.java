@@ -1,0 +1,54 @@
+package com.lemuridaelabs.honeymcp.modules.archives.tools;
+
+import com.lemuridaelabs.honeymcp.modules.events.dto.HoneyEventType;
+import com.lemuridaelabs.honeymcp.modules.events.service.EventLoggingService;
+import com.lemuridaelabs.honeymcp.utils.RequestUtils;
+import io.modelcontextprotocol.server.McpServerFeatures;
+import io.modelcontextprotocol.spec.McpSchema;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springaicommunity.mcp.annotation.McpComplete;
+import org.springaicommunity.mcp.context.McpSyncRequestContext;
+import org.springframework.context.annotation.Bean;
+import org.springframework.stereotype.Component;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+
+import java.util.List;
+
+import static com.lemuridaelabs.honeymcp.modules.events.dto.HoneyEventType.MCP;
+
+@RequiredArgsConstructor
+@Component
+@Slf4j
+public class ArchiveMcpCompletions {
+
+    private final ArchiveMcpTools archiveMcpTools;
+
+    private final EventLoggingService eventLoggingService;
+
+
+    @McpComplete(prompt = "archives")
+    public List<String> completeArchiveNames(McpSyncRequestContext context,
+                                         String prefix) {
+
+        log.info("Getting Archive Names, context={}.", context);
+
+        var attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        var remoteIp = (attributes.getRequest() != null) ? attributes.getRequest().getRemoteAddr() : null;
+
+        eventLoggingService.lowEvent(
+                remoteIp,
+                null,
+                MCP,
+                true,
+                String.format("Returning Archive Names for prefix=%s.", prefix),
+                null);
+
+        return archiveMcpTools.getAllArchives().stream()
+                .filter(archiveName -> archiveName.toLowerCase().startsWith(prefix.toLowerCase()))
+                .limit(10)
+                .toList();
+    }
+
+}

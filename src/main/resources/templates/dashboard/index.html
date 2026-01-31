@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Honeypot Dashboard</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        [v-cloak] {
+            display: none;
+        }
+        .stat-card {
+            transition: all 0.3s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        .table-container {
+            overflow-x: auto;
+        }
+        .loading-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div id="app" v-cloak>
+        <div class="min-h-screen">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-red-600 to-red-800 text-white shadow-lg">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h1 class="text-3xl font-bold">HoneyMCP Dashboard</h1>
+                            <p class="text-red-100">Real-time monitoring of security events and probes</p>
+                        </div>
+                        <!-- Push Notification Controls -->
+                        <div v-if="pushSupported" class="flex items-center space-x-3">
+                            <div class="text-sm">
+                                <!-- Subscribe Button -->
+                                <button
+                                    v-if="!pushSubscribed"
+                                    @click="subscribeToPush"
+                                    :disabled="pushLoading || pushPermission === 'denied'"
+                                    class="inline-flex items-center px-4 py-2 border border-white rounded-md text-sm font-medium text-white hover:bg-white hover:bg-opacity-10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-red-600 focus:ring-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    :title="pushPermission === 'denied' ? 'Notifications are blocked in browser settings' : 'Enable push notifications for alerts'"
+                                >
+                                    <svg v-if="pushLoading" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <svg v-else class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                                    </svg>
+                                    {{ pushLoading ? 'Enabling...' : 'Enable Notifications' }}
+                                </button>
+                                <!-- Unsubscribe Button -->
+                                <button
+                                    v-else
+                                    @click="unsubscribeFromPush"
+                                    :disabled="pushLoading"
+                                    class="inline-flex items-center px-4 py-2 border border-green-300 bg-green-600 bg-opacity-20 rounded-md text-sm font-medium text-white hover:bg-opacity-30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-red-600 focus:ring-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    title="Disable push notifications"
+                                >
+                                    <svg v-if="pushLoading" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <svg v-else class="h-4 w-4 mr-2 text-green-300" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"></path>
+                                    </svg>
+                                    {{ pushLoading ? 'Disabling...' : 'Notifications On' }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Push Notification Feedback Messages -->
+                    <div v-if="pushError || pushSuccess" class="mt-3">
+                        <div v-if="pushError" class="bg-red-900 bg-opacity-50 border border-red-400 text-red-100 px-4 py-2 rounded text-sm">
+                            {{ pushError }}
+                        </div>
+                        <div v-if="pushSuccess" class="bg-green-900 bg-opacity-50 border border-green-400 text-green-100 px-4 py-2 rounded text-sm">
+                            {{ pushSuccess }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <!-- Unique IPs -->
+                    <div class="stat-card bg-white rounded-lg shadow-md p-6">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 bg-blue-500 rounded-md p-3">
+                                <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-5 w-0 flex-1">
+                                <dl>
+                                    <dt class="text-sm font-medium text-gray-500 truncate">Unique IP Addresses</dt>
+                                    <dd class="flex items-baseline">
+                                        <div class="text-2xl font-semibold text-gray-900" :class="{'loading-pulse': loading}">
+                                            {{ stats.uniqueIps }}
+                                        </div>
+                                    </dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Alerts -->
+                    <div class="stat-card bg-white rounded-lg shadow-md p-6">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 bg-red-500 rounded-md p-3">
+                                <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-5 w-0 flex-1">
+                                <dl>
+                                    <dt class="text-sm font-medium text-gray-500 truncate">Alerts Generated</dt>
+                                    <dd class="flex items-baseline">
+                                        <div class="text-2xl font-semibold text-gray-900" :class="{'loading-pulse': loading}">
+                                            {{ stats.alerts }}
+                                        </div>
+                                    </dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- File Attempts -->
+                    <div class="stat-card bg-white rounded-lg shadow-md p-6">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 bg-yellow-500 rounded-md p-3">
+                                <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-5 w-0 flex-1">
+                                <dl>
+                                    <dt class="text-sm font-medium text-gray-500 truncate">File Access Attempts</dt>
+                                    <dd class="flex items-baseline">
+                                        <div class="text-2xl font-semibold text-gray-900" :class="{'loading-pulse': loading}">
+                                            {{ stats.fileAttempts }}
+                                        </div>
+                                    </dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Login Attempts -->
+                    <div class="stat-card bg-white rounded-lg shadow-md p-6">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 bg-purple-500 rounded-md p-3">
+                                <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-5 w-0 flex-1">
+                                <dl>
+                                    <dt class="text-sm font-medium text-gray-500 truncate">Login Attempts</dt>
+                                    <dd class="flex items-baseline">
+                                        <div class="text-2xl font-semibold text-gray-900" :class="{'loading-pulse': loading}">
+                                            {{ stats.loginAttempts }}
+                                        </div>
+                                    </dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Navigation -->
+                <div class="bg-white rounded-lg shadow-md mb-6">
+                    <div class="border-b border-gray-200">
+                        <nav class="-mb-px flex space-x-8 px-6" aria-label="Tabs">
+                            <button
+                                @click="switchTab('events')"
+                                :class="[
+                                    activeTab === 'events'
+                                        ? 'border-red-500 text-red-600'
+                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+                                    'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm'
+                                ]"
+                            >
+                                Security Events
+                            </button>
+                            <button
+                                @click="switchTab('alerts')"
+                                :class="[
+                                    activeTab === 'alerts'
+                                        ? 'border-red-500 text-red-600'
+                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+                                    'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm'
+                                ]"
+                            >
+                                Alerts
+                                <span v-if="alerts.length > 0" class="ml-2 bg-red-100 text-red-600 py-0.5 px-2 rounded-full text-xs font-medium">
+                                    {{ alerts.length }}
+                                </span>
+                            </button>
+                        </nav>
+                    </div>
+                </div>
+
+                <!-- Events View -->
+                <div v-if="activeTab === 'events'" class="bg-white rounded-lg shadow-md">
+                    <!-- Filters -->
+                    <div class="border-b border-gray-200 bg-gray-50 px-6 py-4 rounded-t-lg">
+                        <div class="flex flex-wrap items-end gap-4">
+                            <div class="flex-1 min-w-[200px]">
+                                <label for="ipAddress" class="block text-sm font-medium text-gray-700 mb-1">
+                                    IP Address
+                                </label>
+                                <input
+                                    type="text"
+                                    id="ipAddress"
+                                    v-model="filters.ipAddress"
+                                    @input="fetchEvents"
+                                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm px-3 py-2 border"
+                                    placeholder="Filter by IP..."
+                                >
+                            </div>
+                            <div class="flex-1 min-w-[200px]">
+                                <label for="eventType" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Event Type
+                                </label>
+                                <select
+                                    id="eventType"
+                                    v-model="filters.eventType"
+                                    @change="fetchEvents"
+                                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm px-3 py-2 border"
+                                >
+                                    <option value="">All Types</option>
+                                    <option value="HTTP">HTTP</option>
+                                    <option value="MCP">MCP</option>
+                                    <option value="API">API</option>
+                                    <option value="DASHBOARD">DASHBOARD</option>
+                                    <option value="LIFECYCLE">LIFECYCLE</option>
+                                    <option value="ALERT">ALERT</option>
+                                </select>
+                            </div>
+                            <div class="flex-1 min-w-[200px]">
+                                <label for="minimumScore" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Minimum Score
+                                </label>
+                                <input
+                                    type="number"
+                                    id="minimumScore"
+                                    v-model.number="filters.minimumScore"
+                                    @change="fetchEvents"
+                                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm px-3 py-2 border"
+                                    placeholder="0"
+                                    min="0"
+                                >
+                            </div>
+                            <div class="flex-1 min-w-[200px]">
+                                <label for="count" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Events Per Page
+                                </label>
+                                <select
+                                    id="count"
+                                    v-model.number="filters.count"
+                                    @change="fetchEvents"
+                                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm px-3 py-2 border"
+                                >
+                                    <option :value="10">10</option>
+                                    <option :value="25">25</option>
+                                    <option :value="50">50</option>
+                                    <option :value="100">100</option>
+                                </select>
+                            </div>
+                            <div class="flex-1 min-w-[200px]">
+                                <button
+                                    @click="fetchEvents"
+                                    class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                                    :disabled="loading"
+                                >
+                                    <svg v-if="loading" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    {{ loading ? 'Refreshing...' : 'Refresh Events' }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Events Table -->
+                    <div class="table-container">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Timestamp
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        IP Address
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Event Type
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        URI
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Message
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Score
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <tr v-if="loading && events.length === 0">
+                                    <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                                        <div class="flex justify-center items-center">
+                                            <svg class="animate-spin h-8 w-8 text-red-600" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            <span class="ml-3 text-lg">Loading events...</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr v-else-if="events.length === 0">
+                                    <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                                        <div class="text-lg">No events found</div>
+                                        <div class="text-sm mt-2">Try adjusting your filters</div>
+                                    </td>
+                                </tr>
+                                <tr v-for="event in events" :key="event.id" class="hover:bg-gray-50 cursor-pointer" @click="openEventModal(event)">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        {{ formatDate(event.timestamp) }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                        {{ event.remoteIp || 'N/A' }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span :class="getEventTypeClass(event.eventType)" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">
+                                            {{ event.eventType }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-900 max-w-xs truncate" :title="event.uri">
+                                        {{ event.uri || 'N/A' }}
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-500 max-w-md truncate" :title="event.message">
+                                        {{ event.message || 'N/A' }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span :class="getScoreClass(event.score)" class="px-2 py-1 text-xs font-bold rounded">
+                                            {{ event.score || 0 }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200 rounded-b-lg">
+                        <div class="flex-1 flex justify-between sm:hidden">
+                            <button
+                                @click="previousPage"
+                                :disabled="filters.page === 0"
+                                class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Previous
+                            </button>
+                            <button
+                                @click="nextPage"
+                                :disabled="events.length < filters.count"
+                                class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Next
+                            </button>
+                        </div>
+                        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                            <div>
+                                <p class="text-sm text-gray-700">
+                                    Showing page <span class="font-medium">{{ filters.page + 1 }}</span>
+                                    with <span class="font-medium">{{ events.length }}</span> events
+                                </p>
+                            </div>
+                            <div>
+                                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                                    <button
+                                        @click="previousPage"
+                                        :disabled="filters.page === 0"
+                                        class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <span class="sr-only">Previous</span>
+                                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                    <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                                        Page {{ filters.page + 1 }}
+                                    </span>
+                                    <button
+                                        @click="nextPage"
+                                        :disabled="events.length < filters.count"
+                                        class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <span class="sr-only">Next</span>
+                                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                </nav>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alerts View -->
+                <div v-if="activeTab === 'alerts'" class="bg-white rounded-lg shadow-md">
+                    <!-- Filters -->
+                    <div class="border-b border-gray-200 bg-gray-50 px-6 py-4 rounded-t-lg">
+                        <div class="flex flex-wrap items-end gap-4">
+                            <div class="flex-1 min-w-[200px]">
+                                <label for="alertCount" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Alerts Per Page
+                                </label>
+                                <select
+                                    id="alertCount"
+                                    v-model.number="alertFilters.count"
+                                    @change="fetchAlerts"
+                                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm px-3 py-2 border"
+                                >
+                                    <option :value="10">10</option>
+                                    <option :value="25">25</option>
+                                    <option :value="50">50</option>
+                                    <option :value="100">100</option>
+                                </select>
+                            </div>
+                            <div class="flex-1 min-w-[200px]">
+                                <button
+                                    @click="fetchAlerts"
+                                    class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                                    :disabled="loadingAlerts"
+                                >
+                                    <svg v-if="loadingAlerts" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    {{ loadingAlerts ? 'Refreshing...' : 'Refresh Alerts' }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Alerts Table -->
+                    <div class="table-container">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Timestamp
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        IP Address
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Alert Message
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Severity
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <tr v-if="loadingAlerts && alerts.length === 0">
+                                    <td colspan="4" class="px-6 py-12 text-center text-gray-500">
+                                        <div class="flex justify-center items-center">
+                                            <svg class="animate-spin h-8 w-8 text-red-600" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            <span class="ml-3 text-lg">Loading alerts...</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr v-else-if="alerts.length === 0">
+                                    <td colspan="4" class="px-6 py-12 text-center text-gray-500">
+                                        <div class="text-lg">No alerts found</div>
+                                        <div class="text-sm mt-2">No malicious activity has triggered alerts yet</div>
+                                    </td>
+                                </tr>
+                                <tr v-for="alert in alerts" :key="alert.id" class="hover:bg-gray-50 cursor-pointer" @click="openAlertModal(alert)">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        {{ formatDate(alert.timestamp) }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                        {{ alert.remoteIp || 'N/A' }}
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-900">
+                                        {{ alert.message || 'N/A' }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span :class="getAlertSeverityClass(alert.message)" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">
+                                            {{ getAlertSeverity(alert.message) }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200 rounded-b-lg">
+                        <div class="flex-1 flex justify-between sm:hidden">
+                            <button
+                                @click="previousAlertPage"
+                                :disabled="alertFilters.page === 0"
+                                class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Previous
+                            </button>
+                            <button
+                                @click="nextAlertPage"
+                                :disabled="alerts.length < alertFilters.count"
+                                class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Next
+                            </button>
+                        </div>
+                        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                            <div>
+                                <p class="text-sm text-gray-700">
+                                    Showing page <span class="font-medium">{{ alertFilters.page + 1 }}</span>
+                                    with <span class="font-medium">{{ alerts.length }}</span> alerts
+                                </p>
+                            </div>
+                            <div>
+                                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                                    <button
+                                        @click="previousAlertPage"
+                                        :disabled="alertFilters.page === 0"
+                                        class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <span class="sr-only">Previous</span>
+                                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                    <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                                        Page {{ alertFilters.page + 1 }}
+                                    </span>
+                                    <button
+                                        @click="nextAlertPage"
+                                        :disabled="alerts.length < alertFilters.count"
+                                        class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <span class="sr-only">Next</span>
+                                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                </nav>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Last Updated -->
+                <div class="mt-4 text-center text-sm text-gray-500">
+                    Last updated: {{ lastUpdated }}
+                </div>
+            </div>
+
+            <!-- Event/Alert Detail Modal -->
+            <div v-if="selectedItem" class="fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+                <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                    <!-- Background overlay -->
+                    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="closeModal"></div>
+
+                    <!-- Center modal -->
+                    <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+
+                    <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full">
+                        <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                            <div class="sm:flex sm:items-start">
+                                <div class="mt-3 text-center sm:mt-0 sm:text-left w-full">
+                                    <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4" id="modal-title">
+                                        {{ selectedItemType === 'event' ? 'Event Details' : 'Alert Details' }}
+                                    </h3>
+
+                                    <div class="mt-2 space-y-4">
+                                        <!-- ID -->
+                                        <div class="border-b pb-3">
+                                            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide">ID</label>
+                                            <p class="mt-1 text-sm text-gray-900 font-mono">{{ selectedItem.id }}</p>
+                                        </div>
+
+                                        <!-- Timestamp -->
+                                        <div class="border-b pb-3">
+                                            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide">Timestamp</label>
+                                            <p class="mt-1 text-sm text-gray-900">{{ formatDate(selectedItem.timestamp) }}</p>
+                                        </div>
+
+                                        <!-- IP Address -->
+                                        <div class="border-b pb-3">
+                                            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide">Remote IP Address</label>
+                                            <p class="mt-1 text-sm text-gray-900 font-mono">{{ selectedItem.remoteIp || 'N/A' }}</p>
+                                        </div>
+
+                                        <!-- Event-specific fields -->
+                                        <template v-if="selectedItemType === 'event'">
+                                            <!-- Event Type -->
+                                            <div class="border-b pb-3">
+                                                <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide">Event Type</label>
+                                                <span :class="getEventTypeClass(selectedItem.eventType)" class="mt-1 inline-flex px-2 text-xs leading-5 font-semibold rounded-full">
+                                                    {{ selectedItem.eventType }}
+                                                </span>
+                                            </div>
+
+                                            <!-- Score -->
+                                            <div class="border-b pb-3">
+                                                <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide">Threat Score</label>
+                                                <span :class="getScoreClass(selectedItem.score)" class="mt-1 inline-flex px-3 py-1 text-sm font-bold rounded">
+                                                    {{ selectedItem.score || 0 }}
+                                                </span>
+                                            </div>
+
+                                            <!-- URI -->
+                                            <div class="border-b pb-3">
+                                                <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide">URI</label>
+                                                <p class="mt-1 text-sm text-gray-900 font-mono break-all">{{ selectedItem.uri || 'N/A' }}</p>
+                                            </div>
+
+                                            <!-- Is MCP -->
+                                            <div class="border-b pb-3">
+                                                <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide">MCP Request</label>
+                                                <span :class="selectedItem.isMcp ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'" class="mt-1 inline-flex px-2 text-xs leading-5 font-semibold rounded-full">
+                                                    {{ selectedItem.isMcp ? 'Yes' : 'No' }}
+                                                </span>
+                                            </div>
+                                        </template>
+
+                                        <!-- Alert-specific fields -->
+                                        <template v-if="selectedItemType === 'alert'">
+                                            <!-- Severity -->
+                                            <div class="border-b pb-3">
+                                                <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide">Severity</label>
+                                                <span :class="getAlertSeverityClass(selectedItem.message)" class="mt-1 inline-flex px-2 text-xs leading-5 font-semibold rounded-full">
+                                                    {{ getAlertSeverity(selectedItem.message) }}
+                                                </span>
+                                            </div>
+                                        </template>
+
+                                        <!-- Message -->
+                                        <div class="border-b pb-3">
+                                            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide">Message</label>
+                                            <p class="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{{ selectedItem.message || 'N/A' }}</p>
+                                        </div>
+
+                                        <!-- Data (only for events) -->
+                                        <div v-if="selectedItemType === 'event' && selectedItem.data" class="border-b pb-3">
+                                            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide">Additional Data</label>
+                                            <pre class="mt-1 text-xs text-gray-900 bg-gray-50 p-3 rounded overflow-x-auto">{{ formatJson(selectedItem.data) }}</pre>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                            <button @click="closeModal" type="button" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, onMounted, onUnmounted } = Vue;
+
+        createApp({
+            setup() {
+                const activeTab = ref('events');
+                const events = ref([]);
+                const alerts = ref([]);
+                const loading = ref(false);
+                const loadingAlerts = ref(false);
+                const lastUpdated = ref('');
+                const token = ref('');
+                const selectedItem = ref(null);
+                const selectedItemType = ref(null);
+                const filters = ref({
+                    ipAddress: '',
+                    eventType: '',
+                    minimumScore: 25,
+                    page: 0,
+                    count: 25
+                });
+                const alertFilters = ref({
+                    page: 0,
+                    count: 25
+                });
+
+                // Push notification state
+                const pushSupported = ref(false);
+                const pushPermission = ref('default');
+                const pushSubscribed = ref(false);
+                const pushLoading = ref(false);
+                const pushError = ref('');
+                const pushSuccess = ref('');
+
+                const stats = ref({
+                    uniqueIps: 0,
+                    alerts: 0,
+                    fileAttempts: 0,
+                    loginAttempts: 0
+                });
+
+                let statsRefreshInterval = null;
+
+                // Extract token from URL parameters
+                const getTokenFromURL = () => {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    return urlParams.get('token') || '';
+                };
+
+                const buildApiUrl = (baseUrl, additionalParams = {}) => {
+                    const params = new URLSearchParams({
+                        ...additionalParams,
+                        token: token.value
+                    });
+                    return `${baseUrl}?${params}`;
+                };
+
+                const fetchEvents = async () => {
+                    loading.value = true;
+                    try {
+                        const params = {
+                            page: filters.value.page,
+                            count: filters.value.count
+                        };
+
+                        // Add optional filters only if they have values
+                        if (filters.value.ipAddress && filters.value.ipAddress.trim()) {
+                            params.ipAddress = filters.value.ipAddress.trim();
+                        }
+                        if (filters.value.eventType) {
+                            params.eventType = filters.value.eventType;
+                        }
+                        if (filters.value.minimumScore > 0) {
+                            params.minimumScore = filters.value.minimumScore;
+                        }
+
+                        const url = buildApiUrl('/dashboard/events', params);
+
+                        const response = await fetch(url);
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+
+                        events.value = await response.json();
+                        lastUpdated.value = new Date().toLocaleString();
+                    } catch (error) {
+                        console.error('Error fetching events:', error);
+                        events.value = [];
+                    } finally {
+                        loading.value = false;
+                    }
+                };
+
+                const fetchAlerts = async () => {
+                    loadingAlerts.value = true;
+                    try {
+                        const url = buildApiUrl('/dashboard/alerts', {
+                            page: alertFilters.value.page,
+                            count: alertFilters.value.count
+                        });
+
+                        const response = await fetch(url);
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+
+                        alerts.value = await response.json();
+                        lastUpdated.value = new Date().toLocaleString();
+                    } catch (error) {
+                        console.error('Error fetching alerts:', error);
+                        alerts.value = [];
+                    } finally {
+                        loadingAlerts.value = false;
+                    }
+                };
+
+                const calculateStats = () => {
+                    if (events.value.length === 0) return;
+
+                    // Calculate unique IPs
+                    const uniqueIpsSet = new Set(
+                        events.value
+                            .map(e => e.remoteIp)
+                            .filter(ip => ip)
+                    );
+                    stats.value.uniqueIps = uniqueIpsSet.size;
+
+                    // Calculate alerts (ALERT event type)
+                    stats.value.alerts = events.value.filter(e => e.eventType === 'ALERT').length;
+
+                    // Calculate file attempts (URIs containing file extensions or file-related paths)
+                    stats.value.fileAttempts = events.value.filter(e => {
+                        const uri = e.uri || '';
+                        return uri.match(/\.(php|asp|aspx|jsp|cgi|sh|bat|exe|dll|sql|txt|log|conf|config|xml|json|env|bak|zip|tar|gz)$/i) ||
+                               uri.includes('/file') ||
+                               uri.includes('/download') ||
+                               uri.includes('/upload');
+                    }).length;
+
+                    // Calculate login attempts (URIs or messages containing login-related keywords)
+                    stats.value.loginAttempts = events.value.filter(e => {
+                        const uri = (e.uri || '').toLowerCase();
+                        const message = (e.message || '').toLowerCase();
+                        return uri.includes('login') ||
+                               uri.includes('auth') ||
+                               uri.includes('signin') ||
+                               uri.includes('admin') ||
+                               message.includes('login') ||
+                               message.includes('authentication');
+                    }).length;
+                };
+
+                const fetchStatsFromAllEvents = async () => {
+                    try {
+                        // Fetch a larger sample for better stats (100 recent events)
+                        const eventsUrl = buildApiUrl('/dashboard/events', {
+                            minimumScore: 0,
+                            page: 0,
+                            count: 100
+                        });
+
+                        const eventsResponse = await fetch(eventsUrl);
+                        if (!eventsResponse.ok) return;
+
+                        const allEvents = await eventsResponse.json();
+
+                        // Calculate unique IPs
+                        const uniqueIpsSet = new Set(
+                            allEvents
+                                .map(e => e.remoteIp)
+                                .filter(ip => ip)
+                        );
+                        stats.value.uniqueIps = uniqueIpsSet.size;
+
+                        // Fetch alerts count from the alerts endpoint
+                        const alertsUrl = buildApiUrl('/dashboard/alerts', {
+                            page: 0,
+                            count: 100
+                        });
+
+                        const alertsResponse = await fetch(alertsUrl);
+                        if (alertsResponse.ok) {
+                            const allAlerts = await alertsResponse.json();
+                            stats.value.alerts = allAlerts.length;
+                        }
+
+                        // Calculate file attempts
+                        stats.value.fileAttempts = allEvents.filter(e => {
+                            const uri = e.uri || '';
+                            return uri.match(/\.(php|asp|aspx|jsp|cgi|sh|bat|exe|dll|sql|txt|log|conf|config|xml|json|env|bak|zip|tar|gz)$/i) ||
+                                   uri.includes('/file') ||
+                                   uri.includes('/download') ||
+                                   uri.includes('/upload');
+                        }).length;
+
+                        // Calculate login attempts
+                        stats.value.loginAttempts = allEvents.filter(e => {
+                            const uri = (e.uri || '').toLowerCase();
+                            const message = (e.message || '').toLowerCase();
+                            return uri.includes('login') ||
+                                   uri.includes('auth') ||
+                                   uri.includes('signin') ||
+                                   uri.includes('admin') ||
+                                   message.includes('login') ||
+                                   message.includes('authentication');
+                        }).length;
+                    } catch (error) {
+                        console.error('Error fetching stats:', error);
+                    }
+                };
+
+                const nextPage = () => {
+                    filters.value.page++;
+                    fetchEvents();
+                };
+
+                const previousPage = () => {
+                    if (filters.value.page > 0) {
+                        filters.value.page--;
+                        fetchEvents();
+                    }
+                };
+
+                const nextAlertPage = () => {
+                    alertFilters.value.page++;
+                    fetchAlerts();
+                };
+
+                const previousAlertPage = () => {
+                    if (alertFilters.value.page > 0) {
+                        alertFilters.value.page--;
+                        fetchAlerts();
+                    }
+                };
+
+                const switchTab = (tab) => {
+                    if (activeTab.value === tab) return;
+                    activeTab.value = tab;
+                    // Refresh data when switching tabs
+                    if (tab === 'events') {
+                        fetchEvents();
+                    } else if (tab === 'alerts') {
+                        fetchAlerts();
+                    }
+                };
+
+                const formatDate = (timestamp) => {
+                    if (!timestamp) return 'N/A';
+                    return new Date(timestamp).toLocaleString();
+                };
+
+                const getEventTypeClass = (eventType) => {
+                    const classes = {
+                        'ALERT': 'bg-red-100 text-red-800',
+                        'HTTP': 'bg-blue-100 text-blue-800',
+                        'MCP': 'bg-green-100 text-green-800',
+                        'API': 'bg-purple-100 text-purple-800',
+                        'DASHBOARD': 'bg-gray-100 text-gray-800',
+                        'LIFECYCLE': 'bg-yellow-100 text-yellow-800'
+                    };
+                    return classes[eventType] || 'bg-gray-100 text-gray-800';
+                };
+
+                const getAlertSeverity = (message) => {
+                    if (!message) return 'UNKNOWN';
+                    const lowerMessage = message.toLowerCase();
+                    if (lowerMessage.includes('malicious')) return 'MALICIOUS';
+                    if (lowerMessage.includes('flagged')) return 'FLAGGED';
+                    return 'WARNING';
+                };
+
+                const getAlertSeverityClass = (message) => {
+                    const severity = getAlertSeverity(message);
+                    const classes = {
+                        'MALICIOUS': 'bg-red-100 text-red-800',
+                        'FLAGGED': 'bg-orange-100 text-orange-800',
+                        'WARNING': 'bg-yellow-100 text-yellow-800',
+                        'UNKNOWN': 'bg-gray-100 text-gray-800'
+                    };
+                    return classes[severity] || 'bg-gray-100 text-gray-800';
+                };
+
+                const getScoreClass = (score) => {
+                    if (score >= 80) return 'bg-red-500 text-white';
+                    if (score >= 50) return 'bg-orange-500 text-white';
+                    if (score >= 20) return 'bg-yellow-500 text-white';
+                    return 'bg-green-500 text-white';
+                };
+
+                const openEventModal = (event) => {
+                    selectedItem.value = event;
+                    selectedItemType.value = 'event';
+                };
+
+                const openAlertModal = (alert) => {
+                    selectedItem.value = alert;
+                    selectedItemType.value = 'alert';
+                };
+
+                const closeModal = () => {
+                    selectedItem.value = null;
+                    selectedItemType.value = null;
+                };
+
+                const formatJson = (data) => {
+                    if (!data) return 'N/A';
+                    try {
+                        const parsed = typeof data === 'string' ? JSON.parse(data) : data;
+                        return JSON.stringify(parsed, null, 2);
+                    } catch (e) {
+                        return data;
+                    }
+                };
+
+                // Push notification helper: convert base64 URL to Uint8Array
+                const urlBase64ToUint8Array = (base64String) => {
+                    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+                    const base64 = (base64String + padding)
+                        .replace(/-/g, '+')
+                        .replace(/_/g, '/');
+                    const rawData = window.atob(base64);
+                    const outputArray = new Uint8Array(rawData.length);
+                    for (let i = 0; i < rawData.length; ++i) {
+                        outputArray[i] = rawData.charCodeAt(i);
+                    }
+                    return outputArray;
+                };
+
+                // Initialize push notification support check
+                const initPushNotifications = async () => {
+                    // Check if push notifications are supported
+                    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+                        pushSupported.value = false;
+                        return;
+                    }
+                    pushSupported.value = true;
+
+                    // Check current permission status
+                    pushPermission.value = Notification.permission;
+
+                    // Check if already subscribed by looking for existing service worker registration
+                    try {
+                        const registration = await navigator.serviceWorker.getRegistration();
+                        if (registration) {
+                            const subscription = await registration.pushManager.getSubscription();
+                            pushSubscribed.value = !!subscription;
+                        }
+                    } catch (error) {
+                        console.error('Error checking push subscription:', error);
+                    }
+                };
+
+                // Register service worker with token authentication
+                const registerServiceWorker = async () => {
+                    // Service worker URL must include token for authentication
+                    const swUrl = `/dashboard/js/sw.js?token=${encodeURIComponent(token.value)}`;
+
+                    try {
+                        console.log('[SW Registration] Registering service worker from:', swUrl);
+                        const registration = await navigator.serviceWorker.register(swUrl, {
+                            scope: '/dashboard/'
+                        });
+                        console.log('[SW Registration] Service worker registered with scope:', registration.scope);
+                        console.log('[SW Registration] Registration state - installing:', registration.installing, 'waiting:', registration.waiting, 'active:', registration.active);
+
+                        // Wait for the service worker to install
+                        if (registration.installing) {
+                            console.log('[SW Registration] Service worker is installing, waiting for state change...');
+                            await new Promise((resolve, reject) => {
+                                const timeout = setTimeout(() => reject(new Error('Installation timeout')), 5000);
+                                registration.installing.addEventListener('statechange', function() {
+                                    console.log('[SW Registration] Service worker state changed to:', this.state);
+                                    if (this.state === 'installed' || this.state === 'activated') {
+                                        clearTimeout(timeout);
+                                        resolve();
+                                    } else if (this.state === 'redundant') {
+                                        clearTimeout(timeout);
+                                        reject(new Error('Service worker became redundant'));
+                                    }
+                                });
+                            });
+                        }
+
+                        return registration;
+                    } catch (error) {
+                        console.error('[SW Registration] Service worker registration failed:', error);
+                        throw error;
+                    }
+                };
+
+                // Subscribe to push notifications
+                const subscribeToPush = async () => {
+                    console.log('[Push] Starting subscription process...');
+                    pushLoading.value = true;
+                    pushError.value = '';
+                    pushSuccess.value = '';
+
+                    try {
+                        // Request notification permission if not granted
+                        console.log('[Push] Current permission:', Notification.permission);
+                        if (Notification.permission === 'default') {
+                            console.log('[Push] Requesting notification permission...');
+                            const permission = await Notification.requestPermission();
+                            pushPermission.value = permission;
+                            console.log('[Push] Permission granted:', permission);
+                            if (permission !== 'granted') {
+                                pushError.value = 'Notification permission denied. Please enable notifications in your browser settings.';
+                                return;
+                            }
+                        } else if (Notification.permission === 'denied') {
+                            pushError.value = 'Notifications are blocked. Please enable them in your browser settings.';
+                            return;
+                        }
+
+                        // Register service worker
+                        console.log('[Push] Checking for existing service worker registration...');
+                        let registration = await navigator.serviceWorker.getRegistration();
+                        if (!registration) {
+                            console.log('[Push] No existing registration, registering new service worker...');
+                            registration = await registerServiceWorker();
+                        }
+                        console.log('[Push] Service worker registration:', registration);
+
+                        // Wait for service worker to be ready with timeout
+                        console.log('[Push] Waiting for service worker to be ready...');
+                        const readyPromise = navigator.serviceWorker.ready;
+                        const timeoutPromise = new Promise((_, reject) =>
+                            setTimeout(() => reject(new Error('Service worker activation timeout after 10 seconds')), 10000)
+                        );
+
+                        try {
+                            registration = await Promise.race([readyPromise, timeoutPromise]);
+                            console.log('[Push] Service worker is ready');
+                        } catch (timeoutError) {
+                            console.error('[Push] Service worker activation timed out');
+                            // Try to use the registration we have anyway
+                            if (registration && registration.active) {
+                                console.log('[Push] Using active service worker despite timeout');
+                            } else {
+                                throw new Error('Service worker failed to activate. Try refreshing the page and clearing service workers.');
+                            }
+                        }
+
+                        // Fetch the VAPID public key from the server
+                        console.log('[Push] Fetching VAPID public key...');
+                        const publicKeyUrl = buildApiUrl('/dashboard/api/push/public-key');
+                        console.log('[Push] Public key URL:', publicKeyUrl);
+                        const keyResponse = await fetch(publicKeyUrl);
+                        console.log('[Push] Public key response status:', keyResponse.status);
+                        if (!keyResponse.ok) {
+                            const errorText = await keyResponse.text();
+                            console.error('[Push] Failed to fetch public key:', errorText);
+                            throw new Error('Failed to fetch VAPID public key: ' + keyResponse.status);
+                        }
+                        const vapidPublicKey = await keyResponse.text();
+                        console.log('[Push] VAPID public key received (length):', vapidPublicKey.length);
+
+                        // Check for existing subscription and remove if it has a different key
+                        const existingSubscription = await registration.pushManager.getSubscription();
+                        if (existingSubscription) {
+                            console.log('[Push] Found existing subscription, unsubscribing first...');
+                            await existingSubscription.unsubscribe();
+                            console.log('[Push] Unsubscribed from old subscription');
+                        }
+
+                        // Subscribe to push notifications
+                        console.log('[Push] Subscribing to push manager...');
+                        const subscription = await registration.pushManager.subscribe({
+                            userVisibleOnly: true,
+                            applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
+                        });
+                        console.log('[Push] Subscription created:', subscription);
+
+                        // Send subscription to server
+                        console.log('[Push] Sending subscription to server...');
+                        const subscribeUrl = buildApiUrl('/dashboard/api/push/subscribe');
+                        const subscribeResponse = await fetch(subscribeUrl, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(subscription.toJSON())
+                        });
+
+                        console.log('[Push] Subscribe response status:', subscribeResponse.status);
+                        if (!subscribeResponse.ok) {
+                            const errorText = await subscribeResponse.text();
+                            console.error('[Push] Failed to save subscription:', errorText);
+                            throw new Error('Failed to save subscription on server: ' + subscribeResponse.status);
+                        }
+
+                        pushSubscribed.value = true;
+                        pushSuccess.value = 'Successfully subscribed to push notifications!';
+                        console.log('[Push] Subscription complete!');
+
+                        // Clear success message after 5 seconds
+                        setTimeout(() => {
+                            pushSuccess.value = '';
+                        }, 5000);
+
+                    } catch (error) {
+                        console.error('[Push] Subscription error:', error);
+                        pushError.value = 'Failed to subscribe: ' + error.message;
+                    } finally {
+                        console.log('[Push] Resetting loading state');
+                        pushLoading.value = false;
+                    }
+                };
+
+                // Unsubscribe from push notifications
+                const unsubscribeFromPush = async () => {
+                    pushLoading.value = true;
+                    pushError.value = '';
+                    pushSuccess.value = '';
+
+                    try {
+                        const registration = await navigator.serviceWorker.getRegistration();
+                        if (!registration) {
+                            pushSubscribed.value = false;
+                            return;
+                        }
+
+                        const subscription = await registration.pushManager.getSubscription();
+                        if (!subscription) {
+                            pushSubscribed.value = false;
+                            return;
+                        }
+
+                        // Unsubscribe from browser
+                        await subscription.unsubscribe();
+
+                        // Remove subscription from server
+                        const unsubscribeUrl = buildApiUrl('/dashboard/api/push/unsubscribe');
+                        await fetch(unsubscribeUrl, {
+                            method: 'DELETE',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ endpoint: subscription.endpoint })
+                        });
+
+                        pushSubscribed.value = false;
+                        pushSuccess.value = 'Successfully unsubscribed from push notifications.';
+
+                        // Clear success message after 5 seconds
+                        setTimeout(() => {
+                            pushSuccess.value = '';
+                        }, 5000);
+
+                    } catch (error) {
+                        console.error('Push unsubscription error:', error);
+                        pushError.value = 'Failed to unsubscribe: ' + error.message;
+                    } finally {
+                        pushLoading.value = false;
+                    }
+                };
+
+                onMounted(() => {
+                    // Extract token from URL
+                    token.value = getTokenFromURL();
+
+                    // Initial fetch
+                    fetchEvents();
+                    fetchAlerts();
+                    fetchStatsFromAllEvents();
+
+                    // Initialize push notifications
+                    initPushNotifications();
+
+                    // Set up periodic refresh for stats (every 30 seconds)
+                    statsRefreshInterval = setInterval(() => {
+                        fetchStatsFromAllEvents();
+                    }, 30000);
+                });
+
+                onUnmounted(() => {
+                    if (statsRefreshInterval) {
+                        clearInterval(statsRefreshInterval);
+                    }
+                });
+
+                return {
+                    activeTab,
+                    events,
+                    alerts,
+                    loading,
+                    loadingAlerts,
+                    lastUpdated,
+                    filters,
+                    alertFilters,
+                    stats,
+                    selectedItem,
+                    selectedItemType,
+                    pushSupported,
+                    pushPermission,
+                    pushSubscribed,
+                    pushLoading,
+                    pushError,
+                    pushSuccess,
+                    fetchEvents,
+                    fetchAlerts,
+                    switchTab,
+                    nextPage,
+                    previousPage,
+                    nextAlertPage,
+                    previousAlertPage,
+                    formatDate,
+                    getEventTypeClass,
+                    getAlertSeverity,
+                    getAlertSeverityClass,
+                    getScoreClass,
+                    openEventModal,
+                    openAlertModal,
+                    closeModal,
+                    formatJson,
+                    subscribeToPush,
+                    unsubscribeFromPush
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
