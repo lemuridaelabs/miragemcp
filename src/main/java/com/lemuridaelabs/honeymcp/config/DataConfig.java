@@ -3,6 +3,7 @@ package com.lemuridaelabs.honeymcp.config;
 import com.lemuridaelabs.honeymcp.modules.alerts.dto.HoneyAlert;
 import com.lemuridaelabs.honeymcp.modules.events.dto.HoneyEvent;
 import com.lemuridaelabs.honeymcp.modules.notifications.dto.VapidKey;
+import org.hsqldb.jdbc.JDBCDataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,8 +25,6 @@ import org.springframework.transaction.TransactionManager;
 import javax.sql.DataSource;
 import java.nio.file.Path;
 import java.util.UUID;
-
-import org.hsqldb.jdbc.JDBCDataSource;
 
 /**
  * Database configuration for Spring Data JDBC.
@@ -52,7 +51,7 @@ class DataConfig extends AbstractJdbcConfiguration {
     /**
      * Provides a data source for database connections, either file-based or in-memory, depending on the
      * configuration of the application.
-     *
+     * <p>
      * If a non-blank file-based database path is configured, it creates and configures a file-based
      * data source. Otherwise, it defaults to an in-memory data source.
      *
@@ -112,7 +111,7 @@ class DataConfig extends AbstractJdbcConfiguration {
      * @param dataSource the {@link DataSource} to be used by the {@link NamedParameterJdbcTemplate}.
      *                   The data source is typically used for acquiring database connections.
      * @return a fully initialized {@link NamedParameterJdbcOperations} instance configured
-     *         with the provided {@link DataSource}.
+     * with the provided {@link DataSource}.
      */
     @Bean
     NamedParameterJdbcOperations namedParameterJdbcOperations(DataSource dataSource) {
@@ -155,7 +154,7 @@ class DataConfig extends AbstractJdbcConfiguration {
     /**
      * Callback method for generating a unique identifier for HoneyAlert entities before they are
      * converted and saved to the database.
-     *
+     * <p>
      * Generates a new UUID and assigns it as the ID for a HoneyAlert entity if the ID is not already set.
      *
      * @return a BeforeConvertCallback for HoneyAlert entities, ensuring IDs are generated for new alerts.
@@ -172,7 +171,7 @@ class DataConfig extends AbstractJdbcConfiguration {
 
     /**
      * Callback executed after saving a {@link VapidKey} entity.
-     *
+     * <p>
      * The callback updates the state of the saved {@link VapidKey} instance by marking it as not new,
      * signaling that the entity has been persisted.
      *

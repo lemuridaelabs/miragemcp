@@ -85,10 +85,10 @@ public class ArchiveCacheService {
      * Retrieves an {@link ArchiveFileSummary} from the cache based on the given remote IP address
      * and archive name. If no summary is found in the cache, it will return {@code null}.
      *
-     * @param remoteIp   The IP address associated with the archive file summary. Must not be null.
+     * @param remoteIp    The IP address associated with the archive file summary. Must not be null.
      * @param archiveName The name of the archive file. Must not be null.
      * @return The {@link ArchiveFileSummary} associated with the given remote IP address and archive name,
-     *         or {@code null} if no matching entry is found in the cache.
+     * or {@code null} if no matching entry is found in the cache.
      */
     public ArchiveFileSummary getArchiveFileSummary(String remoteIp, String archiveName, int count) {
         return getSummaryCache().getIfPresent(remoteIp + "::" + archiveName + "::" + count);

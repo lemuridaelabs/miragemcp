@@ -82,7 +82,7 @@ public class AsyncConfig implements AsyncConfigurer {
          * Handles uncaught exceptions thrown during the execution of asynchronous methods.
          * Logs the exception details, including the method name and provided parameters.
          *
-         * @param ex the exception that was thrown during asynchronous method execution
+         * @param ex     the exception that was thrown during asynchronous method execution
          * @param method the method where the exception was thrown
          * @param params the parameters that were passed to the method
          */

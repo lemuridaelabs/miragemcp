@@ -8,13 +8,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 
 /**
  * Security interceptor for protecting dashboard endpoints with token-based access control.
@@ -36,6 +33,7 @@ public class DashboardAccessInterceptor implements HandlerInterceptor {
     private final EventLoggingService eventLoggingService;
 
     private final DashboardTokenService dashboardTokenService;
+
 
     /**
      * Intercepts an incoming HTTP request and determines if access to the /dashboard path
@@ -62,10 +60,14 @@ public class DashboardAccessInterceptor implements HandlerInterceptor {
         // Get token from query parameter
         var providedToken = request.getParameter("token");
 
-        // Check if token is missing or invalid using constant-time comparison to prevent timing attacks
-        if (providedToken == null || !constantTimeEquals(dashboardTokenService.getAccessToken(), providedToken)) {
+        log.info("Processing Dashboard Request with providedToken={}, configured={}.", providedToken,
+                dashboardTokenService.getAccessToken());
 
-            log.warn("Dashboard access attempt without valid token - URI: {}, IP: {}, User-Agent: {}",
+        // Check if token is missing or invalid
+        //
+        if (providedToken == null || !dashboardTokenService.getAccessToken().equals(providedToken)) {
+
+            log.warn("Dashboard access attempt without valid token - URI={}, IP={}, User-Agent={}",
                     uri, getClientIP(request), request.getHeader("User-Agent"));
 
             eventLoggingService.mediumEvent(
@@ -75,7 +77,7 @@ public class DashboardAccessInterceptor implements HandlerInterceptor {
                     String.format("Invalid Access Attempt for Dashboard for uri=%s", uri), null);
 
             // Return 404 to hide dashboard existence
-            return sendNotFoundResponse( response);
+            return sendNotFoundResponse(response);
         }
 
         // Valid token - allow access
@@ -106,7 +108,7 @@ public class DashboardAccessInterceptor implements HandlerInterceptor {
      *
      * @param request the HttpServletRequest object from which the client's IP address is retrieved
      * @return the client's IP address as a String; if the "X-Forwarded-For" header is absent,
-     *         returns the remote address from the request
+     * returns the remote address from the request
      */
     private String getClientIP(HttpServletRequest request) {
         var xForwardedFor = request.getHeader("X-Forwarded-For");
@@ -114,26 +116,6 @@ public class DashboardAccessInterceptor implements HandlerInterceptor {
             return xForwardedFor.split(",")[0].trim();
         }
         return request.getRemoteAddr();
-    }
-
-    /**
-     * Performs a constant-time comparison of two strings to prevent timing attacks.
-     *
-     * <p>Uses {@link MessageDigest#isEqual(byte[], byte[])} which compares byte arrays
-     * in constant time regardless of where differences occur, preventing attackers from
-     * using timing analysis to determine token characters.</p>
-     *
-     * @param expected the expected token value
-     * @param provided the provided token value to compare
-     * @return true if the strings are equal, false otherwise
-     */
-    private boolean constantTimeEquals(String expected, String provided) {
-        if (expected == null || provided == null) {
-            return expected == provided;
-        }
-        var expectedBytes = expected.getBytes(StandardCharsets.UTF_8);
-        var providedBytes = provided.getBytes(StandardCharsets.UTF_8);
-        return MessageDigest.isEqual(expectedBytes, providedBytes);
     }
 
 }

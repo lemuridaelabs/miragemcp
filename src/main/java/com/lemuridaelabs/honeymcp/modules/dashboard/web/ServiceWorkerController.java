@@ -13,7 +13,7 @@ import java.nio.charset.StandardCharsets;
 /**
  * Controller to serve the service worker file through the dashboard authentication interceptor.
  * This ensures the service worker is only accessible with a valid dashboard token.
- *
+ * <p>
  * Service workers must be served from the same origin and path they control,
  * so this endpoint serves the sw.js file under /dashboard/js/ path.
  */

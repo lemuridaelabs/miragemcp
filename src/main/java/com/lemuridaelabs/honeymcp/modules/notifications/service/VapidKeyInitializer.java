@@ -10,12 +10,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigInteger;
-import java.security.KeyPair;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
-import java.security.spec.ECPoint;
 import java.time.Instant;
-import java.util.Base64;
 
 /**
  * Component responsible for initializing VAPID keys on application startup.
@@ -43,16 +40,16 @@ public class VapidKeyInitializer {
      * Initializes the Vapid push notification keys if they do not already exist
      * in the database. This method is automatically invoked when the application
      * is fully started and ready via the {@code ApplicationReadyEvent}.
-     *
+     * <p>
      * The method performs the following steps:
      * 1. Checks whether any records exist in the {@code VapidKeyRepository}.
-     *    If the repository is not empty, the method exits early.
+     * If the repository is not empty, the method exits early.
      * 2. Logs the start of the key generation process.
      * 3. Generates a new KeyPair using the {@code VapidKeyUtil}.
      * 4. Encodes the generated public and private keys using the
-     *    {@code VapidEncodingUtil}.
+     * {@code VapidEncodingUtil}.
      * 5. Saves the keys in the repository as a {@code VapidKey} record
-     *    with a pre-defined ID and a timestamp.
+     * with a pre-defined ID and a timestamp.
      * 6. Logs the successful creation of the keys.
      *
      * @throws Exception if an error occurs during the key generation process.
@@ -71,20 +68,16 @@ public class VapidKeyInitializer {
 
         // Extract raw public key bytes (65 bytes uncompressed format for P-256)
         var ecPublicKey = (ECPublicKey) keyPair.getPublic();
-        byte[] rawPublicKey = extractRawPublicKey(ecPublicKey);
+        var rawPublicKey = extractRawPublicKey(ecPublicKey);
         var publicKey = VapidEncodingUtil.encode(rawPublicKey);
 
         // Extract raw private key bytes (32 bytes scalar for P-256)
         var ecPrivateKey = (ECPrivateKey) keyPair.getPrivate();
-        byte[] rawPrivateKey = extractRawPrivateKey(ecPrivateKey);
+        var rawPrivateKey = extractRawPrivateKey(ecPrivateKey);
         var privateKey = VapidEncodingUtil.encode(rawPrivateKey);
 
-        var result = repository.save(new VapidKey(
-                1L,
-                publicKey,
-                privateKey,
-                Instant.now()
-        ));
+        var result = repository.save(new VapidKey(1L, publicKey,
+                privateKey, Instant.now()));
 
         log.info("Generated Vapid push notification keys, result={}", result);
 
@@ -113,11 +106,11 @@ public class VapidKeyInitializer {
         var y = point.getAffineY();
 
         // Convert to byte arrays (32 bytes each for P-256)
-        byte[] xBytes = toByteArray(x, 32);
-        byte[] yBytes = toByteArray(y, 32);
+        var xBytes = toByteArray(x, 32);
+        var yBytes = toByteArray(y, 32);
 
         // Build uncompressed format: 0x04 || X || Y
-        byte[] rawKey = new byte[65];
+        var rawKey = new byte[65];
         rawKey[0] = 0x04; // Uncompressed point format
         System.arraycopy(xBytes, 0, rawKey, 1, 32);
         System.arraycopy(yBytes, 0, rawKey, 33, 32);
@@ -143,19 +136,19 @@ public class VapidKeyInitializer {
      * Converts a BigInteger to a fixed-size byte array.
      * Pads with leading zeros if necessary.
      *
-     * @param value the BigInteger to convert
+     * @param value  the BigInteger to convert
      * @param length the desired byte array length
      * @return fixed-size byte array
      */
     private byte[] toByteArray(BigInteger value, int length) {
-        byte[] bytes = value.toByteArray();
+        var bytes = value.toByteArray();
 
         if (bytes.length == length) {
             return bytes;
         }
 
         // Handle sign byte and padding
-        byte[] result = new byte[length];
+        var result = new byte[length];
         if (bytes.length > length) {
             // Remove leading sign byte
             System.arraycopy(bytes, bytes.length - length, result, 0, length);

@@ -56,6 +56,7 @@ public class PushNotificationService {
      */
     @Async
     public void sendNotificationToAll(String title, String message, String data) {
+
         try {
             if (!notificationsEnabled) {
                 log.debug("Push notifications are disabled; skipping send.");

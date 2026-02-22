@@ -1,6 +1,5 @@
 package com.lemuridaelabs.honeymcp.modules.archives.tools;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lemuridaelabs.honeymcp.modules.archives.service.ArchiveCacheService;
 import com.lemuridaelabs.honeymcp.modules.events.service.EventLoggingService;
 import io.modelcontextprotocol.spec.McpSchema;
@@ -8,10 +7,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springaicommunity.mcp.annotation.McpResource;
 import org.springaicommunity.mcp.context.McpSyncRequestContext;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.List;
 
@@ -37,13 +36,15 @@ public class ArchiveMcpResources {
 
     private final ArchiveCacheService archiveCacheService;
 
-    private final ObjectMapper objectMapper;
+    private final JsonMapper jsonMapper;
 
     @McpResource(
             uri = "archive-file://{id}",
             name = "Archive File",
             description = "Provides archive file information")
     public McpSchema.ReadResourceResult getArchiveFileResource(McpSyncRequestContext context, String id) {
+
+        context.info(String.format("Getting File Resource Information (%s)", id));
 
         log.info("Getting Archive File Resource, id={}.", id);
 
@@ -70,7 +71,7 @@ public class ArchiveMcpResources {
         var archiveFileJson = "";
 
         try {
-            archiveFileJson = objectMapper.writeValueAsString(archiveFile);
+            archiveFileJson = jsonMapper.writeValueAsString(archiveFile);
         } catch (Exception e) {
             log.error("Failure while serializing the data to JSON, id={}", id, e);
         }

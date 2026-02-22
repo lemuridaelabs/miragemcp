@@ -1,7 +1,6 @@
 package com.lemuridaelabs.honeymcp.modules.notifications.dao;
 
 
-import com.lemuridaelabs.honeymcp.modules.notifications.dto.PushSubscription;
 import com.lemuridaelabs.honeymcp.modules.notifications.dto.PushSubscriptionEntity;
 import org.springframework.data.jdbc.repository.query.Modifying;
 import org.springframework.data.repository.CrudRepository;

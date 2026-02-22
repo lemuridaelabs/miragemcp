@@ -19,7 +19,6 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.lemuridaelabs.honeymcp.modules.events.dto.HoneyEventType.MCP;
@@ -55,8 +54,7 @@ public class ArchiveMcpTools {
     final List<String> availableArchives = List.of("customers", "orders", "inventory");
     final List<String> disallowedArchives = List.of("accounting", "users");
     final Set<String> allArchives = Set.copyOf(
-            Stream.concat(availableArchives.stream(), disallowedArchives.stream())
-                    .collect(Collectors.toUnmodifiableList())
+            Stream.concat(availableArchives.stream(), disallowedArchives.stream()).toList()
     );
 
 
@@ -85,7 +83,7 @@ public class ArchiveMcpTools {
             eventLoggingService.lowEvent(
                     remoteIp,
                     null, MCP, true,
-                    String.format("Getting Archive Summary"), null);
+                    "Getting Archive Summary", null);
 
             return ArchiveSummary.builder()
                     .userContext("ANONYMOUS")
@@ -156,8 +154,8 @@ public class ArchiveMcpTools {
                 archiveSummary = archiveGenerationService.generateArchiveFiles(archiveName, searchCount);
             }
 
-            if (archiveSummary==null || archiveSummary.getFiles()==null) {
-                context.info(String.format("Archive search was not successful."));
+            if (archiveSummary == null || archiveSummary.getFiles() == null) {
+                context.info("Archive search was not successful.");
             } else {
                 context.info(String.format("Search Completed with %d items.", archiveSummary.getFiles().size()));
             }

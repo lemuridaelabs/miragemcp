@@ -1,15 +1,10 @@
 package com.lemuridaelabs.honeymcp.modules.archives.tools;
 
-import com.lemuridaelabs.honeymcp.modules.events.dto.HoneyEventType;
 import com.lemuridaelabs.honeymcp.modules.events.service.EventLoggingService;
-import com.lemuridaelabs.honeymcp.utils.RequestUtils;
-import io.modelcontextprotocol.server.McpServerFeatures;
-import io.modelcontextprotocol.spec.McpSchema;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springaicommunity.mcp.annotation.McpComplete;
 import org.springaicommunity.mcp.context.McpSyncRequestContext;
-import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -39,7 +34,7 @@ public class ArchiveMcpCompletions {
 
     @McpComplete(prompt = "archives")
     public List<String> completeArchiveNames(McpSyncRequestContext context,
-                                         String prefix) {
+                                             String prefix) {
 
         log.info("Getting Archive Names, context={}.", context);
 

@@ -1,0 +1,29 @@
+spring:
+  ai:
+    openai:
+      api-key: dummy
+      chat:
+        enabled: false
+  main:
+    banner-mode: "off"
+
+honeymcp:
+  dashboard:
+    access-token: test-token
+  notifications:
+    enabled: false
+
+management:
+  opentelemetry:
+    logging:
+      export:
+        otlp:
+          enabled: false
+  otlp:
+    metrics:
+      export:
+        enabled: false
+
+logging:
+  level:
+    root: ERROR

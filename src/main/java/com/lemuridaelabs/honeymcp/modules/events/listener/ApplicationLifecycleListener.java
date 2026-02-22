@@ -1,6 +1,5 @@
 package com.lemuridaelabs.honeymcp.modules.events.listener;
 
-import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.logs.LoggerProvider;
 import io.opentelemetry.api.logs.Severity;

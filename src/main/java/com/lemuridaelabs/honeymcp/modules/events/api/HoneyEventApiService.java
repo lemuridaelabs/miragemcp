@@ -29,17 +29,19 @@ import java.util.List;
 public class HoneyEventApiService {
 
     private final EventSearchService eventSearchService;
+
     private final SourceSummaryService sourceSummaryService;
+
 
     /**
      * Retrieves a list of HoneyEvent entities with optional filters for IP address, event type, and minimum score.
      * Results are paginated and sorted by timestamp in descending order.
      *
-     * @param ipAddress optional IP address filter (partial match)
-     * @param eventType optional event type filter (HTTP, MCP, API, DASHBOARD, LIFECYCLE, ALERT)
+     * @param ipAddress    optional IP address filter (partial match)
+     * @param eventType    optional event type filter (HTTP, MCP, API, DASHBOARD, LIFECYCLE, ALERT)
      * @param minimumScore minimum threat score threshold (default: 0)
-     * @param page page number (default: 0)
-     * @param count events per page (default: 25, max: 100)
+     * @param page         page number (default: 0)
+     * @param count        events per page (default: 25, max: 100)
      * @return a list of HoneyEvent objects matching the filter criteria
      */
     @GetMapping("/dashboard/events")
@@ -48,9 +50,7 @@ public class HoneyEventApiService {
                                            @RequestParam(name = "minimumScore", required = false, defaultValue = "0") int minimumScore,
                                            @RequestParam(name = "page", required = false, defaultValue = "0") int page,
                                            @RequestParam(name = "count", required = false, defaultValue = "25") int count) {
-        // Enforce maximum page size
-        var limitedCount = Math.min(count, 100);
-        return eventSearchService.searchEvents(page, limitedCount, ipAddress, eventType, minimumScore).getContent();
+        return eventSearchService.searchEvents(page, count, ipAddress, eventType, minimumScore).getContent();
     }
 
     /**
@@ -58,17 +58,13 @@ public class HoneyEventApiService {
      * Returns the top sources by total threat score within the specified time window.
      *
      * @param hoursBack number of hours to look back (default: 24, max: 168/1 week)
-     * @param limit maximum number of sources to return (default: 50, max: 100)
+     * @param limit     maximum number of sources to return (default: 50, max: 100)
      * @return a list of SourceSummary objects with aggregated metrics per IP
      */
     @GetMapping("/dashboard/sources")
-    public List<SourceSummary> getSources(
-            @RequestParam(name = "hoursBack", required = false, defaultValue = "24") int hoursBack,
-            @RequestParam(name = "limit", required = false, defaultValue = "50") int limit) {
-        // Enforce limits
-        var limitedHours = Math.min(hoursBack, 168); // Max 1 week
-        var limitedCount = Math.min(limit, 100);
-        return sourceSummaryService.getTopSources(limitedHours, limitedCount);
+    public List<SourceSummary> getSources(@RequestParam(name = "hoursBack", required = false, defaultValue = "24") int hoursBack,
+                                          @RequestParam(name = "limit", required = false, defaultValue = "50") int limit) {
+        return sourceSummaryService.getTopSources(hoursBack, limit);
     }
 
 }

@@ -32,16 +32,14 @@ public class HoneyAlertApiService {
      * Retrieves a list of HoneyAlert entities, limited to 100 records, sorted by timestamp in descending order.
      * This endpoint is protected by DashboardAccessInterceptor and requires a valid token parameter.
      *
-     * @param page the page number to retrieve (0-based index, defaults to 0)
+     * @param page  the page number to retrieve (0-based index, defaults to 0)
      * @param count the number of alerts to retrieve per page (defaults to 25, max 100)
      * @return a list of HoneyAlert objects representing the latest alerts
      */
     @GetMapping("/dashboard/alerts")
     public List<HoneyAlert> getHoneyAlerts(@RequestParam(name = "page", required = false, defaultValue = "0") int page,
                                            @RequestParam(name = "count", required = false, defaultValue = "25") int count) {
-        // Enforce maximum page size of 100
-        var limitedCount = Math.min(count, 100);
-        return alertSearchService.getAlerts(page, limitedCount).getContent();
+        return alertSearchService.getAlerts(page, count).getContent();
     }
 
     /**
@@ -49,17 +47,15 @@ public class HoneyAlertApiService {
      * This endpoint is protected by DashboardAccessInterceptor and requires a valid token parameter.
      *
      * @param ipAddress the IP address to filter alerts by
-     * @param page the page number to retrieve (0-based index, defaults to 0)
-     * @param count the number of alerts to retrieve per page (defaults to 25, max 100)
+     * @param page      the page number to retrieve (0-based index, defaults to 0)
+     * @param count     the number of alerts to retrieve per page (defaults to 25, max 100)
      * @return a list of HoneyAlert objects for the specified IP address
      */
     @GetMapping("/dashboard/alerts/by-ip")
     public List<HoneyAlert> getHoneyAlertsByIp(@RequestParam(name = "ipAddress") String ipAddress,
-                                                @RequestParam(name = "page", required = false, defaultValue = "0") int page,
-                                                @RequestParam(name = "count", required = false, defaultValue = "25") int count) {
-        // Enforce maximum page size of 100
-        var limitedCount = Math.min(count, 100);
-        return alertSearchService.searchAlertsByIpAddress(page, limitedCount, ipAddress).getContent();
+                                               @RequestParam(name = "page", required = false, defaultValue = "0") int page,
+                                               @RequestParam(name = "count", required = false, defaultValue = "25") int count) {
+        return alertSearchService.searchAlertsByIpAddress(page, count, ipAddress).getContent();
     }
 
 }

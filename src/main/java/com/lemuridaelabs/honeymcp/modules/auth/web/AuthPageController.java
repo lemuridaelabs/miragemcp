@@ -3,12 +3,10 @@ package com.lemuridaelabs.honeymcp.modules.auth.web;
 import com.lemuridaelabs.honeymcp.modules.events.dto.HoneyEventType;
 import com.lemuridaelabs.honeymcp.modules.events.service.EventLoggingService;
 import com.lemuridaelabs.honeymcp.utils.RequestUtils;
-import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -44,20 +42,19 @@ public class AuthPageController {
         return "/auth/login";
     }
 
+
     /**
      * Handles the login page request by processing the username and password provided by the user.
      * Logs the login attempt and redirects to the login page with an error message.
      *
-     * @param request the http servlet request
+     * @param request  the http servlet request
      * @param username the username provided by the user
      * @param password the password provided by the user
-     * @param modelMap the model map used to pass attributes to the view
      * @return a redirect view to the login page with an error message
      */
     @PostMapping("/auth/login")
     public String handleLoginPage(HttpServletRequest request,
-                                  @RequestParam String username, @RequestParam String password,
-                                  ModelMap modelMap) {
+                                  @RequestParam String username, @RequestParam String password) {
         log.info("User has submitted a login request, username={}, password={}..", username, password);
 
         eventLoggingService.mediumEvent(

@@ -63,7 +63,7 @@ self.addEventListener('notificationclick', event => {
     const urlToOpen = event.notification.data?.url || '/dashboard';
 
     event.waitUntil(
-        clients.matchAll({ type: 'window', includeUncontrolled: true })
+        clients.matchAll({type: 'window', includeUncontrolled: true})
             .then(clientList => {
                 // Check if there's already a dashboard window open
                 for (const client of clientList) {

@@ -1,14 +1,5 @@
-
 server:
   port: ${SERVER_PORT:8989}
-  error:
-    whitelabel:
-      enabled: false
-    include-message: never
-    include-binding-errors: never
-    include-stacktrace: never
-    include-exception: false
-    path: /error
 
 honeymcp:
   database:
@@ -41,6 +32,14 @@ spring:
   web:
     resources:
       add-mappings: true
+    error:
+      whitelabel:
+        enabled: false
+      include-message: never
+      include-binding-errors: never
+      include-stacktrace: never
+      include-exception: false
+      path: /error
   ai:
     openai:
       api-key: ${OPENAI_KEY:dummy-key-please-set-OPENAI_KEY-environment-variable}

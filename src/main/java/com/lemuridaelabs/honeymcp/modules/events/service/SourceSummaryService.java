@@ -32,14 +32,19 @@ public class SourceSummaryService {
      * within the specified time window.
      *
      * @param hoursBack number of hours to look back (e.g., 24 for last 24 hours)
-     * @param limit maximum number of sources to return
+     * @param limit     maximum number of sources to return
      * @return list of SourceSummary objects ordered by total score descending
      */
     public List<SourceSummary> getTopSources(int hoursBack, int limit) {
-        var startDate = Date.from(Instant.now().minus(hoursBack, ChronoUnit.HOURS));
+
+        // Enforce limits
+        var limitedHours = Math.min(hoursBack, 168); // Max 1 week
+        var limitedCount = Math.min(limit, 100);
+
+        var startDate = Date.from(Instant.now().minus(limitedHours, ChronoUnit.HOURS));
 
         // Get top IPs by score
-        var topIps = honeyEventRepository.getTopIpAddressesByScore(startDate, limit);
+        var topIps = honeyEventRepository.getTopIpAddressesByScore(startDate, limitedCount);
 
         // Build full summaries for each IP
         return topIps.stream()
@@ -50,12 +55,14 @@ public class SourceSummaryService {
     /**
      * Gets a source summary for a specific IP address.
      *
-     * @param remoteIp the IP address to get summary for
+     * @param remoteIp  the IP address to get summary for
      * @param hoursBack number of hours to look back
      * @return SourceSummary for the IP, or null if no events found
      */
     public SourceSummary getSourceSummary(String remoteIp, int hoursBack) {
-        var startDate = Date.from(Instant.now().minus(hoursBack, ChronoUnit.HOURS));
+
+        var limitedHours = Math.min(hoursBack, 168); // Max 1 week
+        var startDate = Date.from(Instant.now().minus(limitedHours, ChronoUnit.HOURS));
 
         var scores = honeyEventRepository.getIpAddressScore(remoteIp, startDate);
         if (scores.isEmpty()) {

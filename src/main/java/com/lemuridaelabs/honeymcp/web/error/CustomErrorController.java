@@ -30,7 +30,7 @@ import java.time.format.DateTimeFormatter;
 public class CustomErrorController implements ErrorController {
 
     private static final DateTimeFormatter TIMESTAMP_FORMATTER =
-        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     @RequestMapping("/error")
     public String handleError(HttpServletRequest request, Model model) {

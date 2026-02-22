@@ -23,11 +23,11 @@ import java.security.Security;
 @EnableConfigurationProperties({EventsConfig.class, AlertsConfig.class})
 public class HoneyMCPApplication {
 
-	public static void main(String[] args) {
-		// Register BouncyCastle security provider for web-push cryptographic operations
-		Security.addProvider(new BouncyCastleProvider());
+    public static void main(String[] args) {
+        // Register BouncyCastle security provider for web-push cryptographic operations
+        Security.addProvider(new BouncyCastleProvider());
 
-		SpringApplication.run(HoneyMCPApplication.class, args);
-	}
+        SpringApplication.run(HoneyMCPApplication.class, args);
+    }
 
 }

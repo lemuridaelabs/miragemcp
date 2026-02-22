@@ -2,11 +2,10 @@ package com.lemuridaelabs.honeymcp.modules.alerts.service;
 
 import com.lemuridaelabs.honeymcp.modules.alerts.config.AlertsConfig;
 import com.lemuridaelabs.honeymcp.modules.alerts.dao.HoneyAlertRepository;
-import com.lemuridaelabs.honeymcp.modules.events.dao.HoneyEventRepository;
 import com.lemuridaelabs.honeymcp.modules.alerts.dto.HoneyAlert;
+import com.lemuridaelabs.honeymcp.modules.events.dao.HoneyEventRepository;
 import com.lemuridaelabs.honeymcp.modules.events.dto.HoneyEvent;
 import com.lemuridaelabs.honeymcp.modules.events.dto.HoneyEventType;
-import com.lemuridaelabs.honeymcp.modules.events.dto.IpAddressScore;
 import com.lemuridaelabs.honeymcp.modules.notifications.service.PushNotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
-import java.util.List;
 
 /**
  * Service responsible for evaluating events and generating security alerts.
@@ -55,7 +53,7 @@ public class HoneyAlertProcessingService {
 
     /**
      * Evaluates a newly logged event to determine if an alert should be triggered.
-     *
+     * <p>
      * This method implements a time-window based threshold system with per-IP cooldowns:
      * 1. Calculates the time window for score aggregation based on checkPeriodMinutes
      * 2. Aggregates all event scores for the IP within the time window
@@ -72,7 +70,7 @@ public class HoneyAlertProcessingService {
 
         // Calculate the time window for score aggregation
         var checkPeriodStart = Date.from(
-            Instant.now().minus(alertsConfig.checkPeriodMinutes(), ChronoUnit.MINUTES)
+                Instant.now().minus(alertsConfig.checkPeriodMinutes(), ChronoUnit.MINUTES)
         );
 
         // Get aggregated score for this IP within the check period
@@ -85,20 +83,20 @@ public class HoneyAlertProcessingService {
 
         var totalScore = ipScores.get(0).getTotalScore();
         log.info("IP {} has total score {} over last {} minutes",
-                 remoteIp, totalScore, alertsConfig.checkPeriodMinutes());
+                remoteIp, totalScore, alertsConfig.checkPeriodMinutes());
 
         // Check if we're in cooldown period for this IP
         var cooldownStart = Date.from(
-            Instant.now().minus(alertsConfig.delayMinutes(), ChronoUnit.MINUTES)
+                Instant.now().minus(alertsConfig.delayMinutes(), ChronoUnit.MINUTES)
         );
 
         var recentAlerts = honeyAlertRepository.countAllByRemoteIpAndTimestampAfter(
-            remoteIp, cooldownStart
+                remoteIp, cooldownStart
         );
 
         if (recentAlerts > 0) {
             log.info("IP {} is in cooldown period ({} recent alerts in last {} minutes), skipping alert generation",
-                     remoteIp, recentAlerts, alertsConfig.delayMinutes());
+                    remoteIp, recentAlerts, alertsConfig.delayMinutes());
             return;
         }
 
@@ -106,23 +104,23 @@ public class HoneyAlertProcessingService {
         String alertMessage = null;
         if (totalScore >= alertsConfig.thresholds().malicious()) {
             alertMessage = String.format(
-                "MALICIOUS activity detected from IP %s: Score %d exceeds malicious threshold of %d",
-                remoteIp, totalScore, alertsConfig.thresholds().malicious()
+                    "MALICIOUS activity detected from IP %s: Score %d exceeds malicious threshold of %d",
+                    remoteIp, totalScore, alertsConfig.thresholds().malicious()
             );
         } else if (totalScore >= alertsConfig.thresholds().flagged()) {
             alertMessage = String.format(
-                "FLAGGED activity detected from IP %s: Score %d exceeds flagged threshold of %d",
-                remoteIp, totalScore, alertsConfig.thresholds().flagged()
+                    "FLAGGED activity detected from IP %s: Score %d exceeds flagged threshold of %d",
+                    remoteIp, totalScore, alertsConfig.thresholds().flagged()
             );
         }
 
         // Generate alert if threshold exceeded
         if (alertMessage != null) {
             var alert = HoneyAlert.builder()
-                .remoteIp(remoteIp)
-                .message(alertMessage)
-                .timestamp(new Date())
-                .build();
+                    .remoteIp(remoteIp)
+                    .message(alertMessage)
+                    .timestamp(new Date())
+                    .build();
 
             var savedAlert = honeyAlertRepository.save(alert);
             log.warn("ALERT GENERATED: {}", alertMessage);
@@ -134,7 +132,7 @@ public class HoneyAlertProcessingService {
             sendPushNotification(savedAlert, totalScore);
         } else {
             log.debug("Score {} below flagged threshold {} for IP {}",
-                     totalScore, alertsConfig.thresholds().flagged(), remoteIp);
+                    totalScore, alertsConfig.thresholds().flagged(), remoteIp);
         }
     }
 
@@ -146,15 +144,15 @@ public class HoneyAlertProcessingService {
      */
     private void logAlertEvent(HoneyAlert alert) {
         var alertEvent = HoneyEvent.builder()
-            .remoteIp(alert.getRemoteIp())
-            .uri("/internal/alert")
-            .eventType(HoneyEventType.ALERT)
-            .isMcp(false)
-            .score(0) // Alert events don't contribute to score
-            .message("Alert generated: " + alert.getMessage())
-            .data(alert.getId())
-            .timestamp(new Date())
-            .build();
+                .remoteIp(alert.getRemoteIp())
+                .uri("/internal/alert")
+                .eventType(HoneyEventType.ALERT)
+                .isMcp(false)
+                .score(0) // Alert events don't contribute to score
+                .message("Alert generated: " + alert.getMessage())
+                .data(alert.getId())
+                .timestamp(new Date())
+                .build();
 
         honeyEventRepository.save(alertEvent);
     }
@@ -162,7 +160,7 @@ public class HoneyAlertProcessingService {
     /**
      * Sends push notifications to all subscribed clients when an alert is generated.
      *
-     * @param alert The generated alert
+     * @param alert      The generated alert
      * @param totalScore The total threat score that triggered the alert
      */
     private void sendPushNotification(HoneyAlert alert, int totalScore) {
@@ -175,16 +173,16 @@ public class HoneyAlertProcessingService {
 
             // Build notification message
             var message = String.format("IP %s detected with threat score %d",
-                alert.getRemoteIp(), totalScore);
+                    alert.getRemoteIp(), totalScore);
 
             // Build additional data payload
             var data = String.format(
-                "{\"alertId\":\"%s\",\"remoteIp\":\"%s\",\"score\":%d,\"severity\":\"%s\",\"timestamp\":\"%s\"}",
-                alert.getId(),
-                alert.getRemoteIp(),
-                totalScore,
-                severity,
-                alert.getTimestamp().toInstant().toString()
+                    "{\"alertId\":\"%s\",\"remoteIp\":\"%s\",\"score\":%d,\"severity\":\"%s\",\"timestamp\":\"%s\"}",
+                    alert.getId(),
+                    alert.getRemoteIp(),
+                    totalScore,
+                    severity,
+                    alert.getTimestamp().toInstant().toString()
             );
 
             // Send notification asynchronously

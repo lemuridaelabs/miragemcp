@@ -32,7 +32,7 @@ public class WebConfig implements WebMvcConfigurer {
 
     /**
      * Adds interceptors to the application's interceptor registry.
-     *
+     * <p>
      * The following interceptors are registered:
      * - {@code DashboardAccessInterceptor}: Handles access control for dashboard-related endpoints.
      * - {@code LoggingInterceptor}: Logs all incoming HTTP requests and their corresponding responses.

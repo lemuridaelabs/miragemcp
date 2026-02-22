@@ -13,7 +13,7 @@ import java.io.IOException;
  * Filter that wraps HTTP requests and responses with caching wrappers.
  * This allows the request and response bodies to be read multiple times,
  * which is necessary for logging interceptors.
- *
+ * <p>
  * Excludes MCP and SSE endpoints as they require streaming.
  */
 @Component

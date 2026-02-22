@@ -61,7 +61,7 @@ public class ArchiveFileApiService {
 
         var archiveFileWrapper = archiveCacheService.getArchiveFileRecord(id);
 
-        if (archiveFileWrapper==null) {
+        if (archiveFileWrapper == null) {
             log.warn("No file found for request, id={}.", id);
             return ResponseEntity.notFound().build();
         }

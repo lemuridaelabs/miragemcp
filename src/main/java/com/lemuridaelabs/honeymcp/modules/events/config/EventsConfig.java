@@ -1,8 +1,5 @@
 package com.lemuridaelabs.honeymcp.modules.events.config;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.ToString;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 
@@ -10,5 +7,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record EventsConfig(
         EventWeight weights
 ) {
-    public record EventWeight(int minor, int low, int medium, int high) {}
+    public record EventWeight(int minor, int low, int medium, int high) {
+    }
 }

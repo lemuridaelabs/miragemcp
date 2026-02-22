@@ -20,7 +20,7 @@ public class SecurityConfig {
 
     /**
      * Configures the security filter chain for the application.
-     *
+     * <p>
      * This method sets up the security configuration to permit all requests
      * without requiring authentication or authorization and disables CSRF protection.
      *
@@ -29,7 +29,7 @@ public class SecurityConfig {
      * @throws Exception if an error occurs during the configuration of the security filter chain
      */
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) {
         http
                 .authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll())
                 .csrf(csrf -> csrf.disable());

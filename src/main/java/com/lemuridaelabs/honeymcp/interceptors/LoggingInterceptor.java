@@ -1,7 +1,5 @@
 package com.lemuridaelabs.honeymcp.interceptors;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lemuridaelabs.honeymcp.modules.events.dto.HoneyEventType;
 import com.lemuridaelabs.honeymcp.modules.events.service.EventLoggingService;
 import com.lemuridaelabs.honeymcp.utils.RequestUtils;
@@ -15,11 +13,12 @@ import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.util.ContentCachingRequestWrapper;
 import org.springframework.web.util.ContentCachingResponseWrapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Locale;
-import java.util.Map;
 
 /**
  * HTTP request/response logging interceptor for the honeypot.
@@ -31,7 +30,6 @@ import java.util.Map;
  * <p>Static resources and favicon requests are excluded from logging.</p>
  *
  * @see EventLoggingService
- * @see HoneyEvent
  * @since 1.0
  */
 @RequiredArgsConstructor
@@ -42,15 +40,16 @@ public class LoggingInterceptor implements HandlerInterceptor {
     private static final int MAX_BODY_CHARS = 5000;
 
     private final EventLoggingService eventLoggingService;
-    private final ObjectMapper objectMapper;
+
+    private final JsonMapper jsonMapper;
 
     /**
      * Intercepts an HTTP request before it reaches the controller.
      * Initial logging happens here, but full request/response body logging occurs in afterCompletion.
      *
-     * @param request the HttpServletRequest object containing the details of the incoming request
+     * @param request  the HttpServletRequest object containing the details of the incoming request
      * @param response the HttpServletResponse object for the response
-     * @param handler the handler (or controller) that will process the request
+     * @param handler  the handler (or controller) that will process the request
      * @return true to indicate that the request should proceed to the next step in the processing chain
      */
     @Override
@@ -64,10 +63,10 @@ public class LoggingInterceptor implements HandlerInterceptor {
      * Called after the complete request has finished (after response is sent).
      * Logs the full request and response details including bodies.
      *
-     * @param request the HttpServletRequest object
+     * @param request  the HttpServletRequest object
      * @param response the HttpServletResponse object
-     * @param handler the handler that processed the request
-     * @param ex any exception thrown during request processing
+     * @param handler  the handler that processed the request
+     * @param ex       any exception thrown during request processing
      */
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response,
@@ -141,20 +140,19 @@ public class LoggingInterceptor implements HandlerInterceptor {
     /**
      * Builds a JSON string containing request and response body information.
      *
-     * <p>Uses Jackson ObjectMapper for proper JSON escaping and formatting,
-     * preventing XSS vulnerabilities from malicious request/response content.</p>
-     *
-     * @param method the HTTP method
-     * @param userAgent the User-Agent header value
+     * @param method         the HTTP method
+     * @param userAgent      the User-Agent header value
      * @param acceptLanguage the Accept-Language header value
-     * @param requestBody the request body content
-     * @param status the HTTP response status code
-     * @param responseBody the response body content
+     * @param requestBody    the request body content
+     * @param status         the HTTP response status code
+     * @param responseBody   the response body content
      * @return JSON string with the data, or empty JSON object if serialization fails
      */
     private String buildDataJson(String method, String userAgent, String acceptLanguage,
                                  String requestBody, int status, String responseBody) {
+
         // Use LinkedHashMap to preserve insertion order for consistent output
+        //
         var dataMap = new LinkedHashMap<String, Object>();
         dataMap.put("method", method);
         dataMap.put("userAgent", userAgent);
@@ -164,18 +162,19 @@ public class LoggingInterceptor implements HandlerInterceptor {
         dataMap.put("responseBody", responseBody);
 
         try {
-            return objectMapper.writeValueAsString(dataMap);
-        } catch (JsonProcessingException e) {
+            return jsonMapper.writeValueAsString(dataMap);
+        } catch (JacksonException e) {
             log.warn("Failed to serialize request/response data to JSON", e);
             return "{}";
         }
     }
 
+
     /**
      * Truncates a string if it exceeds the specified maximum length.
      * Adds "... [truncated]" suffix if truncation occurs.
      *
-     * @param value the string to truncate
+     * @param value     the string to truncate
      * @param maxLength maximum allowed length
      * @return truncated string if needed, or original string
      */
@@ -185,6 +184,7 @@ public class LoggingInterceptor implements HandlerInterceptor {
         }
         return value.substring(0, maxLength) + "... [truncated]";
     }
+
 
     /**
      * Truncates a string for console logging to prevent log spam.

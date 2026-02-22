@@ -47,9 +47,9 @@ public class PushKeyController {
             // List all keys if there are any
             if (count > 0) {
                 repository.findAll().forEach(key ->
-                    log.info("Found VAPID key with ID: {}, publicKey length: {}",
-                        key.getId(),
-                        key.getPublicKey() != null ? key.getPublicKey().length() : 0)
+                        log.info("Found VAPID key with ID: {}, publicKey length: {}",
+                                key.getId(),
+                                key.getPublicKey() != null ? key.getPublicKey().length() : 0)
                 );
             }
 

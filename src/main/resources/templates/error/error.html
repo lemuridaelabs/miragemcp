@@ -232,78 +232,79 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>File Archive System</h1>
-            <p>Error</p>
-        </div>
-
-        <div class="content">
-            <div class="error-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-            </div>
-
-            <div class="error-message">
-                <h2 th:text="${status} ? ${status} + ' Error' : 'Server Error'">Server Error</h2>
-                <p th:text="${message} ?: 'An unexpected error occurred while processing your request.'">
-                    An unexpected error occurred while processing your request.
-                </p>
-            </div>
-
-            <div class="error-details" th:if="${status} or ${error} or ${path} or ${timestamp}">
-                <h3>Error Details</h3>
-                <div class="detail-row" th:if="${status}">
-                    <span class="detail-label">Status Code:</span>
-                    <span class="detail-value" th:text="${status}">500</span>
-                </div>
-                <div class="detail-row" th:if="${error}">
-                    <span class="detail-label">Error Type:</span>
-                    <span class="detail-value" th:text="${error}">Internal Server Error</span>
-                </div>
-                <div class="detail-row" th:if="${path}">
-                    <span class="detail-label">Request Path:</span>
-                    <span class="detail-value" th:text="${path}">/</span>
-                </div>
-                <div class="detail-row" th:if="${timestamp}">
-                    <span class="detail-label">Timestamp:</span>
-                    <span class="detail-value" th:text="${timestamp}">-</span>
-                </div>
-            </div>
-
-            <div class="security-notice">
-                <p>
-                    <strong>Notice:</strong> This incident has been logged for security monitoring purposes.
-                    If you believe this is an error, please contact the system administrator.
-                </p>
-            </div>
-
-            <div class="redirect-notice">
-                <p>
-                    Redirecting to home page in <strong id="countdown">10</strong> seconds...
-                </p>
-            </div>
-
-            <div class="button-group">
-                <a href="/" class="btn btn-primary">Return to Home</a>
-                <a href="javascript:history.back()" class="btn btn-secondary">Go Back</a>
-            </div>
-        </div>
+<div class="container">
+    <div class="header">
+        <h1>File Archive System</h1>
+        <p>Error</p>
     </div>
 
-    <script>
-        let seconds = 10;
-        const countdownElement = document.getElementById('countdown');
+    <div class="content">
+        <div class="error-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+        </div>
 
-        const interval = setInterval(function() {
-            seconds--;
-            countdownElement.textContent = seconds;
+        <div class="error-message">
+            <h2 th:text="${status} ? ${status} + ' Error' : 'Server Error'">Server Error</h2>
+            <p th:text="${message} ?: 'An unexpected error occurred while processing your request.'">
+                An unexpected error occurred while processing your request.
+            </p>
+        </div>
 
-            if (seconds <= 0) {
-                clearInterval(interval);
-            }
-        }, 1000);
-    </script>
+        <div class="error-details" th:if="${status} or ${error} or ${path} or ${timestamp}">
+            <h3>Error Details</h3>
+            <div class="detail-row" th:if="${status}">
+                <span class="detail-label">Status Code:</span>
+                <span class="detail-value" th:text="${status}">500</span>
+            </div>
+            <div class="detail-row" th:if="${error}">
+                <span class="detail-label">Error Type:</span>
+                <span class="detail-value" th:text="${error}">Internal Server Error</span>
+            </div>
+            <div class="detail-row" th:if="${path}">
+                <span class="detail-label">Request Path:</span>
+                <span class="detail-value" th:text="${path}">/</span>
+            </div>
+            <div class="detail-row" th:if="${timestamp}">
+                <span class="detail-label">Timestamp:</span>
+                <span class="detail-value" th:text="${timestamp}">-</span>
+            </div>
+        </div>
+
+        <div class="security-notice">
+            <p>
+                <strong>Notice:</strong> This incident has been logged for security monitoring purposes.
+                If you believe this is an error, please contact the system administrator.
+            </p>
+        </div>
+
+        <div class="redirect-notice">
+            <p>
+                Redirecting to home page in <strong id="countdown">10</strong> seconds...
+            </p>
+        </div>
+
+        <div class="button-group">
+            <a href="/" class="btn btn-primary">Return to Home</a>
+            <a href="javascript:history.back()" class="btn btn-secondary">Go Back</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    let seconds = 10;
+    const countdownElement = document.getElementById('countdown');
+
+    const interval = setInterval(function () {
+        seconds--;
+        countdownElement.textContent = seconds;
+
+        if (seconds <= 0) {
+            clearInterval(interval);
+        }
+    }, 1000);
+</script>
 </body>
 </html>

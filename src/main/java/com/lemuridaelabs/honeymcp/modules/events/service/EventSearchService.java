@@ -1,4 +1,3 @@
-
 package com.lemuridaelabs.honeymcp.modules.events.service;
 
 import com.lemuridaelabs.honeymcp.modules.events.dao.HoneyEventRepository;
@@ -35,8 +34,8 @@ public class EventSearchService {
      * Retrieves a page of HoneyEvent entities with a score greater than the specified minimum score.
      * The results are paginated and sorted in descending order by the timestamp.
      *
-     * @param page the page number to retrieve (0-based index)
-     * @param count the number of events to retrieve per page
+     * @param page         the page number to retrieve (0-based index)
+     * @param count        the number of events to retrieve per page
      * @param minimumScore the minimum score threshold for filtering events
      * @return a Page object containing the HoneyEvent entities that meet the minimum score criteria
      */
@@ -49,8 +48,8 @@ public class EventSearchService {
     /**
      * Searches and retrieves a page of HoneyEvent records filtered by the given IP address.
      *
-     * @param page the page number to retrieve, with 0-based indexing
-     * @param count the number of records per page
+     * @param page      the page number to retrieve, with 0-based indexing
+     * @param count     the number of records per page
      * @param ipAddress the IP address to filter events by
      * @return a Page containing HoneyEvent objects that match the given IP address
      */
@@ -63,9 +62,9 @@ public class EventSearchService {
     /**
      * Searches and retrieves a page of HoneyEvent entities filtered by the specified URI.
      *
-     * @param page the page index to retrieve, zero-based
+     * @param page  the page index to retrieve, zero-based
      * @param count the number of records per page
-     * @param uri the URI by which the HoneyEvents should be filtered
+     * @param uri   the URI by which the HoneyEvents should be filtered
      * @return a Page object containing the HoneyEvents that match the specified URI
      */
     public Page<HoneyEvent> searchEventsByUri(int page, int count, String uri) {
@@ -78,8 +77,8 @@ public class EventSearchService {
      * Searches and retrieves a page of HoneyEvent entities that have a score greater than the specified minimum score.
      * The results are paginated and sorted in descending order by the timestamp.
      *
-     * @param page the page number to retrieve (0-based index)
-     * @param count the number of events to retrieve per page
+     * @param page         the page number to retrieve (0-based index)
+     * @param count        the number of events to retrieve per page
      * @param minimumScore the minimum score threshold for filtering events
      * @return a Page object containing HoneyEvent entities that meet the minimum score criteria
      */
@@ -92,15 +91,19 @@ public class EventSearchService {
      * Searches events with multiple optional filters: IP address, event type, and minimum score.
      * All filter parameters are optional - pass null or empty string to skip that filter.
      *
-     * @param page the page number to retrieve (0-based index)
-     * @param count the number of events to retrieve per page
-     * @param ipAddress optional IP address to filter by (partial match)
-     * @param eventType optional event type to filter by
+     * @param page         the page number to retrieve (0-based index)
+     * @param count        the number of events to retrieve per page
+     * @param ipAddress    optional IP address to filter by (partial match)
+     * @param eventType    optional event type to filter by
      * @param minimumScore minimum score threshold for filtering events
      * @return a Page object containing filtered HoneyEvent entities
      */
     public Page<HoneyEvent> searchEvents(int page, int count, String ipAddress, String eventType, int minimumScore) {
-        var pageRequest = PageRequest.of(page, count, Sort.by("timestamp").descending());
+
+        var limitedCount = Math.min(count, 100);
+
+        var pageRequest = PageRequest.of(page, limitedCount, Sort.by("timestamp").descending());
+
 
         var hasIpFilter = ipAddress != null && !ipAddress.trim().isEmpty();
         var hasEventTypeFilter = eventType != null && !eventType.trim().isEmpty();
@@ -119,22 +122,22 @@ public class EventSearchService {
         // All three filters
         if (hasIpFilter && hasEventTypeFilter && hasScoreFilter) {
             return honeyEventRepository.findAllByRemoteIpContainingAndEventTypeAndScoreGreaterThan(
-                ipAddress, eventTypeEnum, minimumScore, pageRequest);
+                    ipAddress, eventTypeEnum, minimumScore, pageRequest);
         }
         // IP and Event Type
         else if (hasIpFilter && hasEventTypeFilter) {
             return honeyEventRepository.findAllByRemoteIpContainingAndEventType(
-                ipAddress, eventTypeEnum, pageRequest);
+                    ipAddress, eventTypeEnum, pageRequest);
         }
         // IP and Score
         else if (hasIpFilter && hasScoreFilter) {
             return honeyEventRepository.findAllByRemoteIpContainingAndScoreGreaterThan(
-                ipAddress, minimumScore, pageRequest);
+                    ipAddress, minimumScore, pageRequest);
         }
         // Event Type and Score
         else if (hasEventTypeFilter && hasScoreFilter) {
             return honeyEventRepository.findAllByEventTypeAndScoreGreaterThan(
-                eventTypeEnum, minimumScore, pageRequest);
+                    eventTypeEnum, minimumScore, pageRequest);
         }
         // Only IP
         else if (hasIpFilter) {

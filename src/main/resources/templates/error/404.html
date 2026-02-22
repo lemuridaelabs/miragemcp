@@ -206,62 +206,63 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>404</h1>
-            <p>Page Not Found</p>
-        </div>
-
-        <div class="content">
-            <div class="error-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-            </div>
-
-            <div class="error-message">
-                <h2>Oops! We can't find that page</h2>
-                <p>The page you're looking for doesn't exist or has been moved.</p>
-                <p th:if="${path}">
-                    <strong>Requested path:</strong> <code th:text="${path}"></code>
-                </p>
-            </div>
-
-            <div class="info-box">
-                <h3>What can you do?</h3>
-                <ul>
-                    <li>Check the URL for typing errors</li>
-                    <li>Return to the home page and navigate from there</li>
-                    <li>Use the browser's back button to return to the previous page</li>
-                    <li>Contact support if you believe this is an error</li>
-                </ul>
-            </div>
-
-            <div class="redirect-notice">
-                <p>
-                    Redirecting to home page in <strong id="countdown">10</strong> seconds...
-                </p>
-            </div>
-
-            <div class="button-group">
-                <a href="/" class="btn btn-primary">Return to Home</a>
-                <a href="javascript:history.back()" class="btn btn-secondary">Go Back</a>
-            </div>
-        </div>
+<div class="container">
+    <div class="header">
+        <h1>404</h1>
+        <p>Page Not Found</p>
     </div>
 
-    <script>
-        let seconds = 10;
-        const countdownElement = document.getElementById('countdown');
+    <div class="content">
+        <div class="error-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+        </div>
 
-        const interval = setInterval(function() {
-            seconds--;
-            countdownElement.textContent = seconds;
+        <div class="error-message">
+            <h2>Oops! We can't find that page</h2>
+            <p>The page you're looking for doesn't exist or has been moved.</p>
+            <p th:if="${path}">
+                <strong>Requested path:</strong> <code th:text="${path}"></code>
+            </p>
+        </div>
 
-            if (seconds <= 0) {
-                clearInterval(interval);
-            }
-        }, 1000);
-    </script>
+        <div class="info-box">
+            <h3>What can you do?</h3>
+            <ul>
+                <li>Check the URL for typing errors</li>
+                <li>Return to the home page and navigate from there</li>
+                <li>Use the browser's back button to return to the previous page</li>
+                <li>Contact support if you believe this is an error</li>
+            </ul>
+        </div>
+
+        <div class="redirect-notice">
+            <p>
+                Redirecting to home page in <strong id="countdown">10</strong> seconds...
+            </p>
+        </div>
+
+        <div class="button-group">
+            <a href="/" class="btn btn-primary">Return to Home</a>
+            <a href="javascript:history.back()" class="btn btn-secondary">Go Back</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    let seconds = 10;
+    const countdownElement = document.getElementById('countdown');
+
+    const interval = setInterval(function () {
+        seconds--;
+        countdownElement.textContent = seconds;
+
+        if (seconds <= 0) {
+            clearInterval(interval);
+        }
+    }, 1000);
+</script>
 </body>
 </html>

@@ -1,7 +1,5 @@
 package com.lemuridaelabs.honeymcp.web.error;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lemuridaelabs.honeymcp.modules.events.dto.HoneyEventType;
 import com.lemuridaelabs.honeymcp.modules.events.service.EventLoggingService;
 import com.lemuridaelabs.honeymcp.utils.RequestUtils;
@@ -16,9 +14,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
-import java.util.LinkedHashMap;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -32,7 +32,8 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     private final EventLoggingService eventLoggingService;
-    private final ObjectMapper objectMapper;
+
+    private final JsonMapper jsonMapper;
 
     /**
      * Builds a JSON string containing request details for event logging.
@@ -46,8 +47,8 @@ public class GlobalExceptionHandler {
         dataMap.put("exceptionMessage", exceptionMessage);
 
         try {
-            return objectMapper.writeValueAsString(dataMap);
-        } catch (JsonProcessingException e) {
+            return jsonMapper.writeValueAsString(dataMap);
+        } catch (JacksonException e) {
             log.warn("Failed to serialize event data to JSON", e);
             return "{}";
         }
@@ -79,12 +80,12 @@ public class GlobalExceptionHandler {
         // if the database is unavailable
         try {
             eventLoggingService.highEvent(
-                remoteIp,
-                uri,
-                HoneyEventType.HTTP,
-                false,
-                "Internal server error: " + ex.getClass().getSimpleName(),
-                buildEventData(request, ex.getClass().getName(), ex.getMessage())
+                    remoteIp,
+                    uri,
+                    HoneyEventType.HTTP,
+                    false,
+                    "Internal server error: " + ex.getClass().getSimpleName(),
+                    buildEventData(request, ex.getClass().getName(), ex.getMessage())
             );
         } catch (Exception loggingEx) {
             log.warn("Failed to log event to database: {}", loggingEx.getMessage());
@@ -97,8 +98,8 @@ public class GlobalExceptionHandler {
         errorResponse.put("path", uri);
 
         return ResponseEntity
-            .status(HttpStatus.INTERNAL_SERVER_ERROR)
-            .body(errorResponse);
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(errorResponse);
     }
 
     /**
@@ -114,12 +115,12 @@ public class GlobalExceptionHandler {
 
         try {
             eventLoggingService.highEvent(
-                remoteIp,
-                uri,
-                HoneyEventType.HTTP,
-                false,
-                "NullPointerException occurred",
-                buildEventData(request, ex.getClass().getName(), ex.getMessage())
+                    remoteIp,
+                    uri,
+                    HoneyEventType.HTTP,
+                    false,
+                    "NullPointerException occurred",
+                    buildEventData(request, ex.getClass().getName(), ex.getMessage())
             );
         } catch (Exception loggingEx) {
             log.warn("Failed to log event to database: {}", loggingEx.getMessage());
@@ -132,8 +133,8 @@ public class GlobalExceptionHandler {
         errorResponse.put("path", uri);
 
         return ResponseEntity
-            .status(HttpStatus.INTERNAL_SERVER_ERROR)
-            .body(errorResponse);
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(errorResponse);
     }
 
     /**
@@ -149,12 +150,12 @@ public class GlobalExceptionHandler {
 
         try {
             eventLoggingService.mediumEvent(
-                remoteIp,
-                uri,
-                HoneyEventType.HTTP,
-                false,
-                "Invalid request parameters",
-                buildEventData(request, ex.getClass().getName(), ex.getMessage())
+                    remoteIp,
+                    uri,
+                    HoneyEventType.HTTP,
+                    false,
+                    "Invalid request parameters",
+                    buildEventData(request, ex.getClass().getName(), ex.getMessage())
             );
         } catch (Exception loggingEx) {
             log.warn("Failed to log event to database: {}", loggingEx.getMessage());
@@ -167,8 +168,8 @@ public class GlobalExceptionHandler {
         errorResponse.put("path", uri);
 
         return ResponseEntity
-            .status(HttpStatus.BAD_REQUEST)
-            .body(errorResponse);
+                .status(HttpStatus.BAD_REQUEST)
+                .body(errorResponse);
     }
 
     /**
@@ -184,12 +185,12 @@ public class GlobalExceptionHandler {
 
         try {
             eventLoggingService.lowEvent(
-                remoteIp,
-                uri,
-                HoneyEventType.HTTP,
-                false,
-                "Resource not found",
-                buildEventData(request, ex.getClass().getName(), ex.getMessage())
+                    remoteIp,
+                    uri,
+                    HoneyEventType.HTTP,
+                    false,
+                    "Resource not found",
+                    buildEventData(request, ex.getClass().getName(), ex.getMessage())
             );
         } catch (Exception loggingEx) {
             log.warn("Failed to log event to database: {}", loggingEx.getMessage());
@@ -202,8 +203,8 @@ public class GlobalExceptionHandler {
         errorResponse.put("path", uri);
 
         return ResponseEntity
-            .status(HttpStatus.NOT_FOUND)
-            .body(errorResponse);
+                .status(HttpStatus.NOT_FOUND)
+                .body(errorResponse);
     }
 
     /**
@@ -222,12 +223,12 @@ public class GlobalExceptionHandler {
 
             try {
                 eventLoggingService.minorEvent(
-                    remoteIp,
-                    uri,
-                    HoneyEventType.HTTP,
-                    false,
-                    "Static resource not found",
-                    buildEventData(request, ex.getClass().getName(), ex.getResourcePath())
+                        remoteIp,
+                        uri,
+                        HoneyEventType.HTTP,
+                        false,
+                        "Static resource not found",
+                        buildEventData(request, ex.getClass().getName(), ex.getResourcePath())
                 );
             } catch (Exception loggingEx) {
                 log.warn("Failed to log event to database: {}", loggingEx.getMessage());
@@ -241,7 +242,7 @@ public class GlobalExceptionHandler {
         errorResponse.put("path", uri);
 
         return ResponseEntity
-            .status(HttpStatus.NOT_FOUND)
-            .body(errorResponse);
+                .status(HttpStatus.NOT_FOUND)
+                .body(errorResponse);
     }
 }

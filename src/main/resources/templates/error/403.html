@@ -238,80 +238,82 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>Access Denied</h1>
-            <p>403 Forbidden</p>
-        </div>
-
-        <div class="content">
-            <div class="error-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 0h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-            </div>
-
-            <div class="error-message">
-                <h2>Access to this resource has been denied</h2>
-                <p>You do not have the necessary permissions to access this page or resource.</p>
-                <p th:if="${message}" th:text="${message}">
-                    The request has been blocked due to security policy.
-                </p>
-            </div>
-
-            <div class="security-alert">
-                <p>
-                    <strong>Security Notice:</strong>
-                </p>
-                <p>
-                    This system is monitored and all access attempts are logged. Unauthorized access attempts may be reported to the appropriate authorities.
-                </p>
-            </div>
-
-            <div class="info-box">
-                <h3>Why might this happen?</h3>
-                <ul>
-                    <li>You are not logged in or your session has expired</li>
-                    <li>You do not have sufficient privileges to view this resource</li>
-                    <li>The request was flagged by security policy</li>
-                    <li>The resource requires authentication that was not provided</li>
-                </ul>
-            </div>
-
-            <div class="info-box">
-                <h3>What can you do?</h3>
-                <ul>
-                    <li>Try logging in with valid credentials</li>
-                    <li>Contact the system administrator if you believe this is an error</li>
-                    <li>Return to the home page and try navigating again</li>
-                </ul>
-            </div>
-
-            <div class="redirect-notice">
-                <p>
-                    Redirecting to home page in <strong id="countdown">10</strong> seconds...
-                </p>
-            </div>
-
-            <div class="button-group">
-                <a href="/" class="btn btn-primary">Return to Home</a>
-                <a href="/auth/login" class="btn btn-secondary">Login</a>
-            </div>
-        </div>
+<div class="container">
+    <div class="header">
+        <h1>Access Denied</h1>
+        <p>403 Forbidden</p>
     </div>
 
-    <script>
-        let seconds = 10;
-        const countdownElement = document.getElementById('countdown');
+    <div class="content">
+        <div class="error-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 15v2m-6 0h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+            </svg>
+        </div>
 
-        const interval = setInterval(function() {
-            seconds--;
-            countdownElement.textContent = seconds;
+        <div class="error-message">
+            <h2>Access to this resource has been denied</h2>
+            <p>You do not have the necessary permissions to access this page or resource.</p>
+            <p th:if="${message}" th:text="${message}">
+                The request has been blocked due to security policy.
+            </p>
+        </div>
 
-            if (seconds <= 0) {
-                clearInterval(interval);
-            }
-        }, 1000);
-    </script>
+        <div class="security-alert">
+            <p>
+                <strong>Security Notice:</strong>
+            </p>
+            <p>
+                This system is monitored and all access attempts are logged. Unauthorized access attempts may be
+                reported to the appropriate authorities.
+            </p>
+        </div>
+
+        <div class="info-box">
+            <h3>Why might this happen?</h3>
+            <ul>
+                <li>You are not logged in or your session has expired</li>
+                <li>You do not have sufficient privileges to view this resource</li>
+                <li>The request was flagged by security policy</li>
+                <li>The resource requires authentication that was not provided</li>
+            </ul>
+        </div>
+
+        <div class="info-box">
+            <h3>What can you do?</h3>
+            <ul>
+                <li>Try logging in with valid credentials</li>
+                <li>Contact the system administrator if you believe this is an error</li>
+                <li>Return to the home page and try navigating again</li>
+            </ul>
+        </div>
+
+        <div class="redirect-notice">
+            <p>
+                Redirecting to home page in <strong id="countdown">10</strong> seconds...
+            </p>
+        </div>
+
+        <div class="button-group">
+            <a href="/" class="btn btn-primary">Return to Home</a>
+            <a href="/auth/login" class="btn btn-secondary">Login</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    let seconds = 10;
+    const countdownElement = document.getElementById('countdown');
+
+    const interval = setInterval(function () {
+        seconds--;
+        countdownElement.textContent = seconds;
+
+        if (seconds <= 0) {
+            clearInterval(interval);
+        }
+    }, 1000);
+</script>
 </body>
 </html>
