@@ -60,9 +60,6 @@ public class DashboardAccessInterceptor implements HandlerInterceptor {
         // Get token from query parameter
         var providedToken = request.getParameter("token");
 
-        log.info("Processing Dashboard Request with providedToken={}, configured={}.", providedToken,
-                dashboardTokenService.getAccessToken());
-
         // Check if token is missing or invalid
         //
         if (providedToken == null || !dashboardTokenService.getAccessToken().equals(providedToken)) {
