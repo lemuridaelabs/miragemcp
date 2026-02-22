@@ -12,6 +12,17 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Service for searching and filtering honeypot events.
+ *
+ * <p>Provides paginated search capabilities for {@link HoneyEvent} entities with support
+ * for filtering by IP address, event type, URI, and minimum threat score. All results
+ * are sorted by timestamp in descending order.</p>
+ *
+ * @see HoneyEvent
+ * @see HoneyEventRepository
+ * @since 1.0
+ */
 @RequiredArgsConstructor
 @Service
 @Slf4j
@@ -89,11 +100,11 @@ public class EventSearchService {
      * @return a Page object containing filtered HoneyEvent entities
      */
     public Page<HoneyEvent> searchEvents(int page, int count, String ipAddress, String eventType, int minimumScore) {
-        PageRequest pageRequest = PageRequest.of(page, count, Sort.by("timestamp").descending());
+        var pageRequest = PageRequest.of(page, count, Sort.by("timestamp").descending());
 
-        boolean hasIpFilter = ipAddress != null && !ipAddress.trim().isEmpty();
-        boolean hasEventTypeFilter = eventType != null && !eventType.trim().isEmpty();
-        boolean hasScoreFilter = minimumScore > 0;
+        var hasIpFilter = ipAddress != null && !ipAddress.trim().isEmpty();
+        var hasEventTypeFilter = eventType != null && !eventType.trim().isEmpty();
+        var hasScoreFilter = minimumScore > 0;
 
         HoneyEventType eventTypeEnum = null;
         if (hasEventTypeFilter) {

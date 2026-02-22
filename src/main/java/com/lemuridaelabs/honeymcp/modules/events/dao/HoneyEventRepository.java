@@ -49,4 +49,43 @@ public interface HoneyEventRepository extends CrudRepository<HoneyEvent, String>
             """)
     List<IpAddressScore> getIpAddressScore(String remoteIp, Date startDate);
 
+    /**
+     * Gets distinct IP addresses with their aggregated scores since a given date.
+     * Returns IPs ordered by total score descending.
+     */
+    @Query("""
+            SELECT remote_ip, sum(score) as total_score
+            FROM "honey_events" e
+            WHERE e.timestamp >= :startDate
+            GROUP BY remote_ip
+            ORDER BY total_score DESC
+            LIMIT :limit
+            """)
+    List<IpAddressScore> getTopIpAddressesByScore(Date startDate, int limit);
+
+    /**
+     * Counts events for a specific IP address since a given date.
+     */
+    long countByRemoteIpAndTimestampGreaterThanEqual(String remoteIp, Date startDate);
+
+    /**
+     * Gets the first event timestamp for a specific IP since a given date.
+     */
+    @Query("""
+            SELECT MIN(e.timestamp)
+            FROM "honey_events" e
+            WHERE e.remote_ip = :remoteIp AND e.timestamp >= :startDate
+            """)
+    Date getFirstSeenSince(String remoteIp, Date startDate);
+
+    /**
+     * Gets the last event timestamp for a specific IP since a given date.
+     */
+    @Query("""
+            SELECT MAX(e.timestamp)
+            FROM "honey_events" e
+            WHERE e.remote_ip = :remoteIp AND e.timestamp >= :startDate
+            """)
+    Date getLastSeenSince(String remoteIp, Date startDate);
+
 }

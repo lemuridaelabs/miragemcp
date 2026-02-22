@@ -10,6 +10,17 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+/**
+ * REST API controller for querying honeypot security alerts.
+ *
+ * <p>Provides endpoints for retrieving and filtering {@link HoneyAlert} entities.
+ * This controller is protected by the {@code DashboardAccessInterceptor} and requires
+ * a valid access token. Results are paginated with a maximum page size of 100.</p>
+ *
+ * @see HoneyAlert
+ * @see AlertSearchService
+ * @since 1.0
+ */
 @RequiredArgsConstructor
 @RestController
 @Slf4j
@@ -29,7 +40,7 @@ public class HoneyAlertApiService {
     public List<HoneyAlert> getHoneyAlerts(@RequestParam(name = "page", required = false, defaultValue = "0") int page,
                                            @RequestParam(name = "count", required = false, defaultValue = "25") int count) {
         // Enforce maximum page size of 100
-        int limitedCount = Math.min(count, 100);
+        var limitedCount = Math.min(count, 100);
         return alertSearchService.getAlerts(page, limitedCount).getContent();
     }
 
@@ -47,7 +58,7 @@ public class HoneyAlertApiService {
                                                 @RequestParam(name = "page", required = false, defaultValue = "0") int page,
                                                 @RequestParam(name = "count", required = false, defaultValue = "25") int count) {
         // Enforce maximum page size of 100
-        int limitedCount = Math.min(count, 100);
+        var limitedCount = Math.min(count, 100);
         return alertSearchService.searchAlertsByIpAddress(page, limitedCount, ipAddress).getContent();
     }
 

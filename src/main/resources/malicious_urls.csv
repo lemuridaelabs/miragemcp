@@ -1,5 +1,23 @@
 category,pattern,description,confidence_level,action,owasp_category
-path_traversal,\.\./|\.\.\\,Directory traversal attempt,high,block,A01:2021
-path_traversal,(?:%2e%2e[/\\]|\.\.%2f|\.\.%5c),Encoded directory traversal,high,block,A01:2021
+path_traversal,\.\./|\.\.\\,Directory traversal attempt,high,flag,A01:2021
+path_traversal,(?:%2e%2e[/\\]|%2e%2e%2f|%2e%2e%5c),Encoded directory traversal,high,flag,A01:2021
+lfi,(?:/etc/passwd|/etc/shadow|/proc/self/environ),Local file inclusion probes,high,flag,A01:2021
+lfi,(?:[a-zA-Z]:\\|%5cwindows%5csystem32|/windows/system32),Windows file path probes,medium,flag,A01:2021
 session_fixation,(?:jsessionid|phpsessid|aspsessionid)=,Session ID in URI,medium,flag,A07:2021
-deserialization,(?:rO0|aced0005|H4sI),Serialized object patterns,high,block,A08:2021
+deserialization,(?:rO0|aced0005|H4sI),Serialized object patterns,high,flag,A08:2021
+sql_injection,(?:\bor\b\s+1=1|\bunion\s+select\b|\bselect\b.+\bfrom\b|information_schema),SQL injection indicators,high,flag,A03:2021
+sql_injection,(?:sleep\s*\(|benchmark\s*\(),SQL injection timing functions,medium,flag,A03:2021
+xss,(?:<script|%3cscript|onerror=|onload=|javascript:),XSS payload indicators,medium,flag,A03:2021
+cmd_injection,(?:;|\|\||&&)\s*(?:curl|wget|nc|bash|sh|powershell|cmd\.exe),Command injection markers,high,flag,A03:2021
+shellshock,\(\)\s*\{\s*:;\s*\},Shellshock function pattern,high,flag,A03:2021
+ssti,(?:\{\{[^}]+\}\}|\$\{[^}]+\}),Template injection markers,medium,flag,A03:2021
+ognl,(?:%\{[^}]+\}|#\{[^}]+\}),Expression language payloads,medium,flag,A03:2021
+log4shell,\$\{jndi:(?:ldap|rmi|dns|ldaps|iiop|http|https)://,Log4Shell JNDI lookup,high,flag,A03:2021
+ssrf,(?:https?://|https?%3a%2f%2f|gopher://|file://|ftp://|dict://),SSRF style URL probes,medium,log,A10:2021
+cloud_metadata,(?:169\.254\.169\.254|/latest/meta-data|/computeMetadata/v1),Cloud metadata probes,high,flag,A10:2021
+webshell,(?:/shell\.php|/cmd\.php|/c99\.php|/r57\.php|/wso\.php),Common webshell paths,high,flag,A05:2021
+config_exposure,(?:/\.env|/config\.php|/wp-config\.php|/application\.yml|/application\.properties),Config file probes,medium,flag,A05:2021
+vcs_exposure,(?:/\.git/|/\.svn/|/\.hg/),VCS metadata probes,medium,flag,A05:2021
+admin_probe,(?:/wp-admin|/wp-login\.php|/phpmyadmin|/pma/|/HNAP1|/cgi-bin/),Common admin panel probes,low,log,A01:2021
+api_probe,(?:/swagger|/v2/api-docs|/v3/api-docs|/api-docs|/openapi\.json|/actuator),API discovery probes,low,log,A01:2021
+jwt_token,(?:eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+),JWT token in URL,low,log,A02:2021

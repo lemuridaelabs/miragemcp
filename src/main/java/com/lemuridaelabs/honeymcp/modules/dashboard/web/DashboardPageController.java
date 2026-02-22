@@ -4,6 +4,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 
+/**
+ * Web controller for the security dashboard UI.
+ *
+ * <p>Serves the Thymeleaf-rendered dashboard page for monitoring honeypot activity.
+ * Access is protected by the {@code DashboardAccessInterceptor} which requires a valid
+ * token parameter. Invalid access attempts return a 404 response to hide the dashboard's
+ * existence from attackers.</p>
+ *
+ * @see com.lemuridaelabs.honeymcp.interceptors.DashboardAccessInterceptor
+ * @since 1.0
+ */
 @Controller
 @Slf4j
 public class DashboardPageController {

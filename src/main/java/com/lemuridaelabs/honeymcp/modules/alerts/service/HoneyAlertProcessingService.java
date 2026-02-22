@@ -18,6 +18,27 @@ import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.List;
 
+/**
+ * Service responsible for evaluating events and generating security alerts.
+ *
+ * <p>This service implements a time-window based threshold system with per-IP cooldowns
+ * to detect malicious activity. When event scores exceed configured thresholds within
+ * the check period, alerts are generated and push notifications are sent to subscribed
+ * clients.</p>
+ *
+ * <p>Key features:</p>
+ * <ul>
+ *   <li>Aggregates event scores per IP within a configurable time window</li>
+ *   <li>Supports flagged and malicious severity levels based on thresholds</li>
+ *   <li>Enforces cooldown periods to prevent alert flooding</li>
+ *   <li>Triggers async push notifications on alert generation</li>
+ * </ul>
+ *
+ * @see HoneyAlert
+ * @see HoneyEvent
+ * @see AlertsConfig
+ * @since 1.0
+ */
 @RequiredArgsConstructor
 @Service
 @Slf4j
@@ -47,31 +68,31 @@ public class HoneyAlertProcessingService {
     public void evaluateEvent(HoneyEvent event) {
         log.info("Evaluating event: {}", event);
 
-        String remoteIp = event.getRemoteIp();
+        var remoteIp = event.getRemoteIp();
 
         // Calculate the time window for score aggregation
-        Date checkPeriodStart = Date.from(
+        var checkPeriodStart = Date.from(
             Instant.now().minus(alertsConfig.checkPeriodMinutes(), ChronoUnit.MINUTES)
         );
 
         // Get aggregated score for this IP within the check period
-        List<IpAddressScore> ipScores = honeyEventRepository.getIpAddressScore(remoteIp, checkPeriodStart);
+        var ipScores = honeyEventRepository.getIpAddressScore(remoteIp, checkPeriodStart);
 
         if (ipScores.isEmpty()) {
             log.debug("No score data found for IP: {}", remoteIp);
             return;
         }
 
-        int totalScore = ipScores.get(0).getTotalScore();
+        var totalScore = ipScores.get(0).getTotalScore();
         log.info("IP {} has total score {} over last {} minutes",
                  remoteIp, totalScore, alertsConfig.checkPeriodMinutes());
 
         // Check if we're in cooldown period for this IP
-        Date cooldownStart = Date.from(
+        var cooldownStart = Date.from(
             Instant.now().minus(alertsConfig.delayMinutes(), ChronoUnit.MINUTES)
         );
 
-        long recentAlerts = honeyAlertRepository.countAllByRemoteIpAndTimestampAfter(
+        var recentAlerts = honeyAlertRepository.countAllByRemoteIpAndTimestampAfter(
             remoteIp, cooldownStart
         );
 
@@ -97,13 +118,13 @@ public class HoneyAlertProcessingService {
 
         // Generate alert if threshold exceeded
         if (alertMessage != null) {
-            HoneyAlert alert = HoneyAlert.builder()
+            var alert = HoneyAlert.builder()
                 .remoteIp(remoteIp)
                 .message(alertMessage)
                 .timestamp(new Date())
                 .build();
 
-            HoneyAlert savedAlert = honeyAlertRepository.save(alert);
+            var savedAlert = honeyAlertRepository.save(alert);
             log.warn("ALERT GENERATED: {}", alertMessage);
 
             // Log the alert as a special event for tracking
@@ -124,7 +145,7 @@ public class HoneyAlertProcessingService {
      * @param alert The HoneyAlert that was generated
      */
     private void logAlertEvent(HoneyAlert alert) {
-        HoneyEvent alertEvent = HoneyEvent.builder()
+        var alertEvent = HoneyEvent.builder()
             .remoteIp(alert.getRemoteIp())
             .uri("/internal/alert")
             .eventType(HoneyEventType.ALERT)

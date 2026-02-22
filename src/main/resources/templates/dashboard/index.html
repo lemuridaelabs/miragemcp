@@ -215,6 +215,20 @@
                                     {{ alerts.length }}
                                 </span>
                             </button>
+                            <button
+                                @click="switchTab('sources')"
+                                :class="[
+                                    activeTab === 'sources'
+                                        ? 'border-red-500 text-red-600'
+                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+                                    'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm'
+                                ]"
+                            >
+                                Sources
+                                <span v-if="sources.length > 0" class="ml-2 bg-blue-100 text-blue-600 py-0.5 px-2 rounded-full text-xs font-medium">
+                                    {{ sources.length }}
+                                </span>
+                            </button>
                         </nav>
                     </div>
                 </div>
@@ -349,8 +363,16 @@
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                         {{ formatDate(event.timestamp) }}
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                        {{ event.remoteIp || 'N/A' }}
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button
+                                            v-if="event.remoteIp"
+                                            @click.stop="viewSourceForIp(event.remoteIp)"
+                                            class="text-blue-600 hover:text-blue-900 hover:underline font-mono"
+                                            title="View source details for this IP"
+                                        >
+                                            {{ event.remoteIp }}
+                                        </button>
+                                        <span v-else class="text-gray-900">N/A</span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <span :class="getEventTypeClass(event.eventType)" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">
@@ -507,8 +529,16 @@
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                         {{ formatDate(alert.timestamp) }}
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                        {{ alert.remoteIp || 'N/A' }}
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button
+                                            v-if="alert.remoteIp"
+                                            @click.stop="viewSourceForIp(alert.remoteIp)"
+                                            class="text-blue-600 hover:text-blue-900 hover:underline font-mono"
+                                            title="View source details for this IP"
+                                        >
+                                            {{ alert.remoteIp }}
+                                        </button>
+                                        <span v-else class="text-gray-900">N/A</span>
                                     </td>
                                     <td class="px-6 py-4 text-sm text-gray-900">
                                         {{ alert.message || 'N/A' }}
@@ -579,6 +609,152 @@
                     </div>
                 </div>
 
+                <!-- Sources View -->
+                <div v-if="activeTab === 'sources'" class="bg-white rounded-lg shadow-md">
+                    <!-- Filters -->
+                    <div class="border-b border-gray-200 bg-gray-50 px-6 py-4 rounded-t-lg">
+                        <div class="flex flex-wrap items-end gap-4">
+                            <div class="flex-1 min-w-[200px]">
+                                <label for="sourceHoursBack" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Time Window
+                                </label>
+                                <select
+                                    id="sourceHoursBack"
+                                    v-model.number="sourceFilters.hoursBack"
+                                    @change="fetchSources"
+                                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm px-3 py-2 border"
+                                >
+                                    <option :value="6">Last 6 hours</option>
+                                    <option :value="12">Last 12 hours</option>
+                                    <option :value="24">Last 24 hours</option>
+                                    <option :value="48">Last 48 hours</option>
+                                    <option :value="168">Last 7 days</option>
+                                </select>
+                            </div>
+                            <div class="flex-1 min-w-[200px]">
+                                <label for="sourceLimit" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Max Sources
+                                </label>
+                                <select
+                                    id="sourceLimit"
+                                    v-model.number="sourceFilters.limit"
+                                    @change="fetchSources"
+                                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm px-3 py-2 border"
+                                >
+                                    <option :value="25">25</option>
+                                    <option :value="50">50</option>
+                                    <option :value="100">100</option>
+                                </select>
+                            </div>
+                            <div class="flex-1 min-w-[200px]">
+                                <button
+                                    @click="fetchSources"
+                                    class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                                    :disabled="loadingSources"
+                                >
+                                    <svg v-if="loadingSources" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    {{ loadingSources ? 'Refreshing...' : 'Refresh Sources' }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sources Table -->
+                    <div class="table-container">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        IP Address
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Total Score
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Events
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Alerts
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        First Seen
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Last Seen
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Actions
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <tr v-if="loadingSources && sources.length === 0">
+                                    <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                                        <div class="flex justify-center items-center">
+                                            <svg class="animate-spin h-8 w-8 text-red-600" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            <span class="ml-3 text-lg">Loading sources...</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr v-else-if="sources.length === 0">
+                                    <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                                        <div class="text-lg">No sources found</div>
+                                        <div class="text-sm mt-2">No IP addresses have generated events in this time window</div>
+                                    </td>
+                                </tr>
+                                <tr v-for="source in sources" :key="source.remoteIp" class="hover:bg-gray-50">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 font-mono">
+                                        {{ source.remoteIp }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span :class="getScoreClass(source.totalScore)" class="px-2 py-1 text-xs font-bold rounded">
+                                            {{ source.totalScore }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        {{ source.eventCount }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span v-if="source.alertCount > 0" class="px-2 py-1 text-xs font-bold rounded bg-red-100 text-red-800">
+                                            {{ source.alertCount }}
+                                        </span>
+                                        <span v-else class="text-sm text-gray-400">0</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        {{ formatDate(source.firstSeen) }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        {{ formatDate(source.lastSeen) }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                        <button
+                                            @click="viewEventsForIp(source.remoteIp)"
+                                            class="text-red-600 hover:text-red-900 font-medium"
+                                        >
+                                            View Events
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Info footer -->
+                    <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 rounded-b-lg">
+                        <p class="text-sm text-gray-700">
+                            Showing <span class="font-medium">{{ sources.length }}</span> sources
+                            from the last <span class="font-medium">{{ sourceFilters.hoursBack }}</span> hours,
+                            sorted by total threat score
+                        </p>
+                    </div>
+                </div>
+
                 <!-- Last Updated -->
                 <div class="mt-4 text-center text-sm text-gray-500">
                     Last updated: {{ lastUpdated }}
@@ -602,79 +778,85 @@
                                         {{ selectedItemType === 'event' ? 'Event Details' : 'Alert Details' }}
                                     </h3>
 
-                                    <div class="mt-2 space-y-4">
-                                        <!-- ID -->
-                                        <div class="border-b pb-3">
-                                            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide">ID</label>
-                                            <p class="mt-1 text-sm text-gray-900 font-mono">{{ selectedItem.id }}</p>
-                                        </div>
-
-                                        <!-- Timestamp -->
-                                        <div class="border-b pb-3">
-                                            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide">Timestamp</label>
-                                            <p class="mt-1 text-sm text-gray-900">{{ formatDate(selectedItem.timestamp) }}</p>
-                                        </div>
-
-                                        <!-- IP Address -->
-                                        <div class="border-b pb-3">
-                                            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide">Remote IP Address</label>
-                                            <p class="mt-1 text-sm text-gray-900 font-mono">{{ selectedItem.remoteIp || 'N/A' }}</p>
-                                        </div>
-
-                                        <!-- Event-specific fields -->
-                                        <template v-if="selectedItemType === 'event'">
-                                            <!-- Event Type -->
-                                            <div class="border-b pb-3">
-                                                <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide">Event Type</label>
-                                                <span :class="getEventTypeClass(selectedItem.eventType)" class="mt-1 inline-flex px-2 text-xs leading-5 font-semibold rounded-full">
-                                                    {{ selectedItem.eventType }}
-                                                </span>
+                                    <div class="mt-2">
+                                        <!-- Two-column grid for compact fields -->
+                                        <div class="grid grid-cols-2 gap-4 pb-4 border-b">
+                                            <!-- ID -->
+                                            <div>
+                                                <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide">ID</label>
+                                                <p class="mt-1 text-sm text-gray-900 font-mono">{{ selectedItem.id }}</p>
                                             </div>
 
-                                            <!-- Score -->
-                                            <div class="border-b pb-3">
-                                                <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide">Threat Score</label>
-                                                <span :class="getScoreClass(selectedItem.score)" class="mt-1 inline-flex px-3 py-1 text-sm font-bold rounded">
-                                                    {{ selectedItem.score || 0 }}
-                                                </span>
+                                            <!-- Timestamp -->
+                                            <div>
+                                                <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide">Timestamp</label>
+                                                <p class="mt-1 text-sm text-gray-900">{{ formatDate(selectedItem.timestamp) }}</p>
                                             </div>
 
-                                            <!-- URI -->
-                                            <div class="border-b pb-3">
+                                            <!-- IP Address -->
+                                            <div>
+                                                <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide">Remote IP Address</label>
+                                                <p class="mt-1 text-sm text-gray-900 font-mono">{{ selectedItem.remoteIp || 'N/A' }}</p>
+                                            </div>
+
+                                            <!-- Event-specific fields in grid -->
+                                            <template v-if="selectedItemType === 'event'">
+                                                <!-- Event Type -->
+                                                <div>
+                                                    <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide">Event Type</label>
+                                                    <span :class="getEventTypeClass(selectedItem.eventType)" class="mt-1 inline-flex px-2 text-xs leading-5 font-semibold rounded-full">
+                                                        {{ selectedItem.eventType }}
+                                                    </span>
+                                                </div>
+
+                                                <!-- Score -->
+                                                <div>
+                                                    <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide">Threat Score</label>
+                                                    <span :class="getScoreClass(selectedItem.score)" class="mt-1 inline-flex px-3 py-1 text-sm font-bold rounded">
+                                                        {{ selectedItem.score || 0 }}
+                                                    </span>
+                                                </div>
+
+                                                <!-- Is MCP -->
+                                                <div>
+                                                    <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide">MCP Request</label>
+                                                    <span :class="selectedItem.isMcp ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'" class="mt-1 inline-flex px-2 text-xs leading-5 font-semibold rounded-full">
+                                                        {{ selectedItem.isMcp ? 'Yes' : 'No' }}
+                                                    </span>
+                                                </div>
+                                            </template>
+
+                                            <!-- Alert-specific fields in grid -->
+                                            <template v-if="selectedItemType === 'alert'">
+                                                <!-- Severity -->
+                                                <div>
+                                                    <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide">Severity</label>
+                                                    <span :class="getAlertSeverityClass(selectedItem.message)" class="mt-1 inline-flex px-2 text-xs leading-5 font-semibold rounded-full">
+                                                        {{ getAlertSeverity(selectedItem.message) }}
+                                                    </span>
+                                                </div>
+                                            </template>
+                                        </div>
+
+                                        <!-- Full-width fields below the grid -->
+                                        <div class="space-y-4 pt-4">
+                                            <!-- URI (full width for events) -->
+                                            <div v-if="selectedItemType === 'event'" class="border-b pb-3">
                                                 <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide">URI</label>
                                                 <p class="mt-1 text-sm text-gray-900 font-mono break-all">{{ selectedItem.uri || 'N/A' }}</p>
                                             </div>
 
-                                            <!-- Is MCP -->
+                                            <!-- Message -->
                                             <div class="border-b pb-3">
-                                                <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide">MCP Request</label>
-                                                <span :class="selectedItem.isMcp ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'" class="mt-1 inline-flex px-2 text-xs leading-5 font-semibold rounded-full">
-                                                    {{ selectedItem.isMcp ? 'Yes' : 'No' }}
-                                                </span>
+                                                <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide">Message</label>
+                                                <p class="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{{ selectedItem.message || 'N/A' }}</p>
                                             </div>
-                                        </template>
 
-                                        <!-- Alert-specific fields -->
-                                        <template v-if="selectedItemType === 'alert'">
-                                            <!-- Severity -->
-                                            <div class="border-b pb-3">
-                                                <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide">Severity</label>
-                                                <span :class="getAlertSeverityClass(selectedItem.message)" class="mt-1 inline-flex px-2 text-xs leading-5 font-semibold rounded-full">
-                                                    {{ getAlertSeverity(selectedItem.message) }}
-                                                </span>
+                                            <!-- Data (only for events) -->
+                                            <div v-if="selectedItemType === 'event' && selectedItem.data">
+                                                <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide">Additional Data</label>
+                                                <pre class="mt-1 text-xs text-gray-900 bg-gray-50 p-3 rounded overflow-x-auto">{{ formatJson(selectedItem.data) }}</pre>
                                             </div>
-                                        </template>
-
-                                        <!-- Message -->
-                                        <div class="border-b pb-3">
-                                            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide">Message</label>
-                                            <p class="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{{ selectedItem.message || 'N/A' }}</p>
-                                        </div>
-
-                                        <!-- Data (only for events) -->
-                                        <div v-if="selectedItemType === 'event' && selectedItem.data" class="border-b pb-3">
-                                            <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide">Additional Data</label>
-                                            <pre class="mt-1 text-xs text-gray-900 bg-gray-50 p-3 rounded overflow-x-auto">{{ formatJson(selectedItem.data) }}</pre>
                                         </div>
                                     </div>
                                 </div>
@@ -715,6 +897,12 @@
                 const alertFilters = ref({
                     page: 0,
                     count: 25
+                });
+                const sources = ref([]);
+                const loadingSources = ref(false);
+                const sourceFilters = ref({
+                    hoursBack: 24,
+                    limit: 50
                 });
 
                 // Push notification state
@@ -805,6 +993,49 @@
                     } finally {
                         loadingAlerts.value = false;
                     }
+                };
+
+                const fetchSources = async () => {
+                    loadingSources.value = true;
+                    try {
+                        const url = buildApiUrl('/dashboard/sources', {
+                            hoursBack: sourceFilters.value.hoursBack,
+                            limit: sourceFilters.value.limit
+                        });
+
+                        const response = await fetch(url);
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+
+                        sources.value = await response.json();
+                        lastUpdated.value = new Date().toLocaleString();
+                    } catch (error) {
+                        console.error('Error fetching sources:', error);
+                        sources.value = [];
+                    } finally {
+                        loadingSources.value = false;
+                    }
+                };
+
+                const viewEventsForIp = (ipAddress) => {
+                    // Switch to events tab and filter by this IP
+                    filters.value.ipAddress = ipAddress;
+                    filters.value.minimumScore = 0;
+                    filters.value.eventType = '';
+                    filters.value.page = 0;
+                    activeTab.value = 'events';
+                    fetchEvents();
+                };
+
+                const viewSourceForIp = (ipAddress) => {
+                    // Switch to sources tab - the IP will be visible if it's in the top sources
+                    activeTab.value = 'sources';
+                    // Refresh sources with a wider time window to increase chances of seeing this IP
+                    if (sourceFilters.value.hoursBack < 24) {
+                        sourceFilters.value.hoursBack = 24;
+                    }
+                    fetchSources();
                 };
 
                 const calculateStats = () => {
@@ -934,6 +1165,8 @@
                         fetchEvents();
                     } else if (tab === 'alerts') {
                         fetchAlerts();
+                    } else if (tab === 'sources') {
+                        fetchSources();
                     }
                 };
 
@@ -1033,10 +1266,21 @@
 
                     // Check if already subscribed by looking for existing service worker registration
                     try {
-                        const registration = await navigator.serviceWorker.getRegistration();
+                        // Try to get registration for the dashboard scope specifically
+                        let registration = await navigator.serviceWorker.getRegistration('/dashboard/');
+
+                        // If no dashboard-scoped registration, try current page scope
+                        if (!registration) {
+                            registration = await navigator.serviceWorker.getRegistration();
+                        }
+
                         if (registration) {
+                            console.log('[Push] Found service worker registration:', registration.scope);
                             const subscription = await registration.pushManager.getSubscription();
                             pushSubscribed.value = !!subscription;
+                            console.log('[Push] Existing subscription found:', !!subscription);
+                        } else {
+                            console.log('[Push] No service worker registration found');
                         }
                     } catch (error) {
                         console.error('Error checking push subscription:', error);
@@ -1255,10 +1499,19 @@
                     // Initial fetch
                     fetchEvents();
                     fetchAlerts();
+                    fetchSources();
                     fetchStatsFromAllEvents();
 
                     // Initialize push notifications
                     initPushNotifications();
+
+                    // Also listen for service worker controller changes to update subscription status
+                    if ('serviceWorker' in navigator) {
+                        navigator.serviceWorker.addEventListener('controllerchange', () => {
+                            console.log('[Push] Service worker controller changed, re-checking subscription...');
+                            initPushNotifications();
+                        });
+                    }
 
                     // Set up periodic refresh for stats (every 30 seconds)
                     statsRefreshInterval = setInterval(() => {
@@ -1276,11 +1529,14 @@
                     activeTab,
                     events,
                     alerts,
+                    sources,
                     loading,
                     loadingAlerts,
+                    loadingSources,
                     lastUpdated,
                     filters,
                     alertFilters,
+                    sourceFilters,
                     stats,
                     selectedItem,
                     selectedItemType,
@@ -1292,11 +1548,14 @@
                     pushSuccess,
                     fetchEvents,
                     fetchAlerts,
+                    fetchSources,
                     switchTab,
                     nextPage,
                     previousPage,
                     nextAlertPage,
                     previousAlertPage,
+                    viewEventsForIp,
+                    viewSourceForIp,
                     formatDate,
                     getEventTypeClass,
                     getAlertSeverity,

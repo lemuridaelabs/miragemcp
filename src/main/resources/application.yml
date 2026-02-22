@@ -11,19 +11,22 @@ server:
     path: /error
 
 honeymcp:
+  database:
+    path: ${DATABASE_PATH:}
   server:
     base-url: ${SERVER_BASEURL:http://localhost:8989}
     file-base: ${SERVER_FILE_URL:/archive/files/}
   dashboard:
     access-token: ${DASHBOARD_ACCESS_TOKEN:*RANDOMTOKEN*}
   alert:
-    delayMinutes: ${ALERTS_DELAYS_MINS:15}
+    delayMinutes: ${ALERTS_DELAY_MINS:15}
     checkPeriodMinutes: ${ALERTS_CHECK_MINS:15}
     thresholds:
       flagged: ${ALERTS_THRESHOLD_FLAGGED:125}
       malicious: ${ALERTS_THRESHOLD_MALICIOUS:175}
   event:
     weights:
+      minor: ${EVENTS_WEIGHT_MINOR:10}
       low: ${EVENTS_WEIGHT_LOW:25}
       medium: ${EVENTS_WEIGHT_MEDIUM:50}
       high: ${EVENTS_WEIGHT_HIGH:75}
@@ -38,11 +41,9 @@ spring:
   web:
     resources:
       add-mappings: true
-  mvc:
-    throw-exception-if-no-handler-found: true
   ai:
     openai:
-      api-key: ${OPENAI_KEY:sk-dummy-key-please-set-OPENAI_KEY-environment-variable}
+      api-key: ${OPENAI_KEY:dummy-key-please-set-OPENAI_KEY-environment-variable}
       chat:
         enabled: true
         options:
@@ -59,4 +60,18 @@ logging:
   level:
     org:
       springframework:
-        jdbc=DEBUG:
+        jdbc: INFO
+
+# Disable OTLP export by default; enable via the `otlp` profile.
+management:
+  opentelemetry:
+    logging:
+      export:
+        otlp:
+          enabled: false
+  otlp:
+    metrics:
+      export:
+        enabled: false
+
+

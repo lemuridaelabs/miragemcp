@@ -19,6 +19,8 @@ import java.io.IOException;
 @Component
 public class RequestResponseCachingFilter implements Filter {
 
+    private static final int MAX_BODY_BYTES = 5000;
+
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
@@ -35,7 +37,7 @@ public class RequestResponseCachingFilter implements Filter {
 
         // Wrap the request and response with caching wrappers
         //
-        var wrappedRequest = new ContentCachingRequestWrapper(httpRequest);
+        var wrappedRequest = new ContentCachingRequestWrapper(httpRequest, MAX_BODY_BYTES);
         var wrappedResponse = new ContentCachingResponseWrapper((HttpServletResponse) response);
 
         try {

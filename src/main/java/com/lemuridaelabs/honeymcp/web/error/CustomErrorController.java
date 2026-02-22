@@ -2,7 +2,7 @@ package com.lemuridaelabs.honeymcp.web.error;
 
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.boot.web.servlet.error.ErrorController;
+import org.springframework.boot.webmvc.error.ErrorController;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -11,6 +11,21 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
+/**
+ * Custom error controller for handling HTTP errors with themed error pages.
+ *
+ * <p>Routes errors to specific Thymeleaf templates based on HTTP status codes:</p>
+ * <ul>
+ *   <li>403 - Forbidden error page</li>
+ *   <li>404 - Not Found error page</li>
+ *   <li>5xx - Server error page</li>
+ *   <li>Other - Generic error page</li>
+ * </ul>
+ *
+ * <p>Provides user-friendly error messages without exposing sensitive system information.</p>
+ *
+ * @since 1.0
+ */
 @Controller
 public class CustomErrorController implements ErrorController {
 
@@ -19,10 +34,10 @@ public class CustomErrorController implements ErrorController {
 
     @RequestMapping("/error")
     public String handleError(HttpServletRequest request, Model model) {
-        Object status = request.getAttribute(RequestDispatcher.ERROR_STATUS_CODE);
-        Object message = request.getAttribute(RequestDispatcher.ERROR_MESSAGE);
-        Object exception = request.getAttribute(RequestDispatcher.ERROR_EXCEPTION);
-        Object requestUri = request.getAttribute(RequestDispatcher.ERROR_REQUEST_URI);
+        var status = request.getAttribute(RequestDispatcher.ERROR_STATUS_CODE);
+        var message = request.getAttribute(RequestDispatcher.ERROR_MESSAGE);
+        var exception = request.getAttribute(RequestDispatcher.ERROR_EXCEPTION);
+        var requestUri = request.getAttribute(RequestDispatcher.ERROR_REQUEST_URI);
 
         Integer statusCode = null;
         if (status != null) {
@@ -38,7 +53,7 @@ public class CustomErrorController implements ErrorController {
 
             // Get HttpStatus for better error description
             try {
-                HttpStatus httpStatus = HttpStatus.valueOf(statusCode);
+                var httpStatus = HttpStatus.valueOf(statusCode);
                 model.addAttribute("error", httpStatus.getReasonPhrase());
 
                 // Add custom message based on status code

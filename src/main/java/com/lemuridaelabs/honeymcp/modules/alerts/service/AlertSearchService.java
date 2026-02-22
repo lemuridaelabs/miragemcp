@@ -10,6 +10,16 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Service for searching and retrieving honeypot security alerts.
+ *
+ * <p>Provides paginated search capabilities for {@link HoneyAlert} entities with support
+ * for filtering by IP address. All results are sorted by timestamp in descending order.</p>
+ *
+ * @see HoneyAlert
+ * @see HoneyAlertRepository
+ * @since 1.0
+ */
 @RequiredArgsConstructor
 @Service
 @Slf4j

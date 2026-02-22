@@ -18,6 +18,15 @@ import java.util.List;
 
 import static com.lemuridaelabs.honeymcp.modules.events.dto.HoneyEventType.MCP;
 
+/**
+ * MCP completion provider for archive name auto-completion.
+ *
+ * <p>Provides auto-completion suggestions for archive names based on user input prefix.
+ * This helps AI assistants discover available archives through the MCP protocol.</p>
+ *
+ * @see ArchiveMcpTools
+ * @since 1.0
+ */
 @RequiredArgsConstructor
 @Component
 @Slf4j

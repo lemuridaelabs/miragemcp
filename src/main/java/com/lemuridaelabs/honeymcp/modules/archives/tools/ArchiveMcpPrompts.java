@@ -11,6 +11,15 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+/**
+ * MCP prompt definitions for archive search operations.
+ *
+ * <p>Defines prompt templates that AI assistants can use to construct
+ * archive search requests through the MCP protocol.</p>
+ *
+ * @see ArchiveMcpTools
+ * @since 1.0
+ */
 @RequiredArgsConstructor
 @Component
 @Slf4j
@@ -24,7 +33,7 @@ public class ArchiveMcpPrompts {
             @McpArg(name = "archiveName", required = true) String archiveName,
             @McpArg(name = "count", required = false) String count) {
 
-        String promptText = String.format(
+        var promptText = String.format(
                 "Search the file archive %s for files. Be sure to limit files and archives to ones that are permitted. Please return %d items.",
                 archiveName, count);
 

@@ -9,6 +9,7 @@ import nl.martijndwars.webpush.Notification;
 import nl.martijndwars.webpush.PushService;
 import nl.martijndwars.webpush.Subscription;
 import org.jose4j.lang.JoseException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +17,24 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.concurrent.ExecutionException;
 
+/**
+ * Service for sending web push notifications to subscribed clients.
+ *
+ * <p>This service manages the delivery of push notifications using the Web Push protocol
+ * with VAPID (Voluntary Application Server Identification) authentication. Notifications
+ * are sent asynchronously to avoid blocking the caller.</p>
+ *
+ * <p>Features include:</p>
+ * <ul>
+ *   <li>Async notification delivery to all registered subscriptions</li>
+ *   <li>Automatic cleanup of invalid/expired subscriptions</li>
+ *   <li>JSON payload construction with title, body, and custom data</li>
+ * </ul>
+ *
+ * @see VapidKey
+ * @see PushSubscriptionRepository
+ * @since 1.0
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -23,6 +42,9 @@ public class PushNotificationService {
 
     private final PushSubscriptionRepository subscriptionRepository;
     private final VapidKeyRepository vapidKeyRepository;
+
+    @Value("${honeymcp.notifications.enabled:true}")
+    private boolean notificationsEnabled;
 
     /**
      * Sends a push notification to all subscribed clients.
@@ -35,17 +57,22 @@ public class PushNotificationService {
     @Async
     public void sendNotificationToAll(String title, String message, String data) {
         try {
+            if (!notificationsEnabled) {
+                log.debug("Push notifications are disabled; skipping send.");
+                return;
+            }
+
             log.info("Sending Global Push Notification, title={}, message={}, data={}.", title, message, data);
 
             // Retrieve VAPID keys
-            VapidKey vapidKey = vapidKeyRepository.findById(1L)
+            var vapidKey = vapidKeyRepository.findById(1L)
                     .orElseThrow(() -> new IllegalStateException("VAPID keys not initialized"));
 
             // Initialize push service with VAPID keys
-            PushService pushService = createPushService(vapidKey);
+            var pushService = createPushService(vapidKey);
 
             // Build notification payload
-            String payload = buildNotificationPayload(title, message, data);
+            var payload = buildNotificationPayload(title, message, data);
 
             // Send to all subscriptions
             subscriptionRepository.findAll().forEach(sub -> {
@@ -99,13 +126,13 @@ public class PushNotificationService {
             throws GeneralSecurityException, IOException, JoseException, ExecutionException, InterruptedException {
 
         // Create subscription object
-        Subscription subscription = new Subscription(
+        var subscription = new Subscription(
                 endpoint,
                 new Subscription.Keys(p256dh, auth)
         );
 
         // Create notification
-        Notification notification = new Notification(subscription, payload);
+        var notification = new Notification(subscription, payload);
 
         // Send notification
         pushService.send(notification);
@@ -122,7 +149,7 @@ public class PushNotificationService {
      * @return JSON string payload
      */
     private String buildNotificationPayload(String title, String message, String data) {
-        StringBuilder json = new StringBuilder();
+        var json = new StringBuilder();
         json.append("{");
         json.append("\"title\":\"").append(escapeJson(title)).append("\",");
         json.append("\"body\":\"").append(escapeJson(message)).append("\"");
@@ -159,7 +186,7 @@ public class PushNotificationService {
      * @return true if subscription should be removed
      */
     private boolean isSubscriptionGone(Exception e) {
-        String message = e.getMessage();
+        var message = e.getMessage();
         return message != null && (message.contains("410") || message.contains("Gone"));
     }
 }

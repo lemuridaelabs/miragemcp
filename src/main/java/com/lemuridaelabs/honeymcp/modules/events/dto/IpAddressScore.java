@@ -14,7 +14,7 @@ import org.springframework.data.annotation.Id;
 public class IpAddressScore {
 
     @Id
-    private String ipAddress;
+    private String remoteIp;
 
     private int totalScore;
 

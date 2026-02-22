@@ -23,4 +23,9 @@ public interface HoneyAlertRepository extends CrudRepository<HoneyAlert, String>
             """)
     List<HoneyAlert> countAllByRemoteIp(String remoteIp);
 
+    /**
+     * Counts alerts for a specific IP address since a given date.
+     */
+    long countByRemoteIpAndTimestampGreaterThanEqual(String remoteIp, Date startDate);
+
 }

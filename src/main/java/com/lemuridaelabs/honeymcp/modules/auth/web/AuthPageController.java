@@ -13,6 +13,17 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+/**
+ * Web controller for authentication pages (honeypot login forms).
+ *
+ * <p>Serves fake login pages designed to capture credential harvesting attempts.
+ * All login submissions are logged as medium-severity events with the captured
+ * username and password for threat intelligence purposes. Login attempts always
+ * fail with an error message to encourage repeated attempts.</p>
+ *
+ * @see EventLoggingService
+ * @since 1.0
+ */
 @RequiredArgsConstructor
 @Controller
 @Slf4j

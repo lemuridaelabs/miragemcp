@@ -9,6 +9,17 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+/**
+ * REST API controller for retrieving VAPID public keys for push notification subscriptions.
+ *
+ * <p>This controller provides the public VAPID key that clients need to subscribe
+ * to push notifications. The endpoint is protected by the {@code DashboardAccessInterceptor}
+ * and requires a valid access token.</p>
+ *
+ * @see VapidKey
+ * @see VapidKeyRepository
+ * @since 1.0
+ */
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/dashboard/api/push")
@@ -30,7 +41,7 @@ public class PushKeyController {
         log.info("Fetching VAPID public key");
         try {
             // Check how many keys exist
-            long count = repository.count();
+            var count = repository.count();
             log.info("VAPID key count in database: {}", count);
 
             // List all keys if there are any

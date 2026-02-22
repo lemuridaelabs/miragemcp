@@ -23,8 +23,8 @@ public class ServiceWorkerController {
 
     @GetMapping(value = "/sw.js", produces = "application/javascript")
     public ResponseEntity<String> getServiceWorker() throws IOException {
-        ClassPathResource resource = new ClassPathResource("static/dashboard/js/sw.js");
-        String content = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+        var resource = new ClassPathResource("static/dashboard/js/sw.js");
+        var content = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_TYPE, "application/javascript")

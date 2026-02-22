@@ -17,6 +17,17 @@ import java.util.List;
 
 import static com.lemuridaelabs.honeymcp.modules.events.dto.HoneyEventType.MCP;
 
+/**
+ * MCP resource provider for archive file access.
+ *
+ * <p>Exposes archive files as MCP resources that AI assistants can read.
+ * File access is logged as a high-severity event since it indicates an attempt
+ * to access potentially sensitive data through the honeypot.</p>
+ *
+ * @see ArchiveCacheService
+ * @see EventLoggingService
+ * @since 1.0
+ */
 @RequiredArgsConstructor
 @Component
 @Slf4j

@@ -10,5 +10,5 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record EventsConfig(
         EventWeight weights
 ) {
-    public record EventWeight(int low, int medium, int high) {}
+    public record EventWeight(int minor, int low, int medium, int high) {}
 }

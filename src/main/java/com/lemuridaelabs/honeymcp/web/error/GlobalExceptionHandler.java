@@ -1,5 +1,7 @@
 package com.lemuridaelabs.honeymcp.web.error;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lemuridaelabs.honeymcp.modules.events.dto.HoneyEventType;
 import com.lemuridaelabs.honeymcp.modules.events.service.EventLoggingService;
 import com.lemuridaelabs.honeymcp.utils.RequestUtils;
@@ -11,8 +13,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import java.util.LinkedHashMap;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -27,6 +32,37 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     private final EventLoggingService eventLoggingService;
+    private final ObjectMapper objectMapper;
+
+    /**
+     * Builds a JSON string containing request details for event logging.
+     */
+    private String buildEventData(HttpServletRequest request, String exceptionType, String exceptionMessage) {
+        var dataMap = new LinkedHashMap<String, Object>();
+        dataMap.put("method", request.getMethod());
+        dataMap.put("userAgent", request.getHeader("User-Agent"));
+        dataMap.put("acceptLanguage", request.getHeader("Accept-Language"));
+        dataMap.put("exceptionType", exceptionType);
+        dataMap.put("exceptionMessage", exceptionMessage);
+
+        try {
+            return objectMapper.writeValueAsString(dataMap);
+        } catch (JsonProcessingException e) {
+            log.warn("Failed to serialize event data to JSON", e);
+            return "{}";
+        }
+    }
+
+    /**
+     * Handles async request timeouts (normal for SSE connections).
+     * Does not log an event as this is expected behavior.
+     */
+    @ExceptionHandler(AsyncRequestTimeoutException.class)
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    public ResponseEntity<Void> handleAsyncTimeout(AsyncRequestTimeoutException ex) {
+        // No logging - this is normal for SSE/streaming connections
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
+    }
 
     /**
      * Handles all unhandled exceptions and prevents stack traces from being exposed.
@@ -34,23 +70,27 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ResponseEntity<Map<String, Object>> handleException(Exception ex, HttpServletRequest request) {
-        String remoteIp = RequestUtils.getEffectiveRemoteIp(request);
-        String uri = request.getRequestURI();
+        var remoteIp = RequestUtils.getEffectiveRemoteIp(request);
+        var uri = request.getRequestURI();
 
         log.error("Unhandled exception for request from IP: {}, URI: {}", remoteIp, uri, ex);
 
-        // Log as high-severity event
-        eventLoggingService.highEvent(
-            remoteIp,
-            uri,
-            HoneyEventType.HTTP,
-            false,
-            "Internal server error: " + ex.getClass().getSimpleName(),
-            String.format("Method: %s, Exception: %s, Message: %s",
-                request.getMethod(), ex.getClass().getName(), ex.getMessage())
-        );
+        // Log as high-severity event - wrapped in try-catch to prevent cascade failure
+        // if the database is unavailable
+        try {
+            eventLoggingService.highEvent(
+                remoteIp,
+                uri,
+                HoneyEventType.HTTP,
+                false,
+                "Internal server error: " + ex.getClass().getSimpleName(),
+                buildEventData(request, ex.getClass().getName(), ex.getMessage())
+            );
+        } catch (Exception loggingEx) {
+            log.warn("Failed to log event to database: {}", loggingEx.getMessage());
+        }
 
-        Map<String, Object> errorResponse = new HashMap<>();
+        var errorResponse = new HashMap<String, Object>();
         errorResponse.put("error", "Internal Server Error");
         errorResponse.put("message", "An error occurred processing your request");
         errorResponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
@@ -67,21 +107,25 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NullPointerException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ResponseEntity<Map<String, Object>> handleNullPointerException(NullPointerException ex, HttpServletRequest request) {
-        String remoteIp = RequestUtils.getEffectiveRemoteIp(request);
-        String uri = request.getRequestURI();
+        var remoteIp = RequestUtils.getEffectiveRemoteIp(request);
+        var uri = request.getRequestURI();
 
         log.error("NullPointerException for request from IP: {}, URI: {}", remoteIp, uri, ex);
 
-        eventLoggingService.highEvent(
-            remoteIp,
-            uri,
-            HoneyEventType.HTTP,
-            false,
-            "NullPointerException occurred",
-            String.format("Method: %s, Message: %s", request.getMethod(), ex.getMessage())
-        );
+        try {
+            eventLoggingService.highEvent(
+                remoteIp,
+                uri,
+                HoneyEventType.HTTP,
+                false,
+                "NullPointerException occurred",
+                buildEventData(request, ex.getClass().getName(), ex.getMessage())
+            );
+        } catch (Exception loggingEx) {
+            log.warn("Failed to log event to database: {}", loggingEx.getMessage());
+        }
 
-        Map<String, Object> errorResponse = new HashMap<>();
+        var errorResponse = new HashMap<String, Object>();
         errorResponse.put("error", "Internal Server Error");
         errorResponse.put("message", "An error occurred processing your request");
         errorResponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
@@ -98,21 +142,25 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ResponseEntity<Map<String, Object>> handleIllegalArgumentException(IllegalArgumentException ex, HttpServletRequest request) {
-        String remoteIp = RequestUtils.getEffectiveRemoteIp(request);
-        String uri = request.getRequestURI();
+        var remoteIp = RequestUtils.getEffectiveRemoteIp(request);
+        var uri = request.getRequestURI();
 
         log.warn("IllegalArgumentException for request from IP: {}, URI: {}, Message: {}", remoteIp, uri, ex.getMessage());
 
-        eventLoggingService.mediumEvent(
-            remoteIp,
-            uri,
-            HoneyEventType.HTTP,
-            false,
-            "Invalid request parameters",
-            String.format("Method: %s, Message: %s", request.getMethod(), ex.getMessage())
-        );
+        try {
+            eventLoggingService.mediumEvent(
+                remoteIp,
+                uri,
+                HoneyEventType.HTTP,
+                false,
+                "Invalid request parameters",
+                buildEventData(request, ex.getClass().getName(), ex.getMessage())
+            );
+        } catch (Exception loggingEx) {
+            log.warn("Failed to log event to database: {}", loggingEx.getMessage());
+        }
 
-        Map<String, Object> errorResponse = new HashMap<>();
+        var errorResponse = new HashMap<String, Object>();
         errorResponse.put("error", "Bad Request");
         errorResponse.put("message", "Invalid request parameters");
         errorResponse.put("status", HttpStatus.BAD_REQUEST.value());
@@ -129,21 +177,64 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NoHandlerFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ResponseEntity<Map<String, Object>> handleNotFound(NoHandlerFoundException ex, HttpServletRequest request) {
-        String remoteIp = RequestUtils.getEffectiveRemoteIp(request);
-        String uri = request.getRequestURI();
+        var remoteIp = RequestUtils.getEffectiveRemoteIp(request);
+        var uri = request.getRequestURI();
 
         log.debug("404 Not Found for request from IP: {}, URI: {}", remoteIp, uri);
 
-        eventLoggingService.lowEvent(
-            remoteIp,
-            uri,
-            HoneyEventType.HTTP,
-            false,
-            "Resource not found",
-            String.format("Method: %s", request.getMethod())
-        );
+        try {
+            eventLoggingService.lowEvent(
+                remoteIp,
+                uri,
+                HoneyEventType.HTTP,
+                false,
+                "Resource not found",
+                buildEventData(request, ex.getClass().getName(), ex.getMessage())
+            );
+        } catch (Exception loggingEx) {
+            log.warn("Failed to log event to database: {}", loggingEx.getMessage());
+        }
 
-        Map<String, Object> errorResponse = new HashMap<>();
+        var errorResponse = new HashMap<String, Object>();
+        errorResponse.put("error", "Not Found");
+        errorResponse.put("message", "The requested resource was not found");
+        errorResponse.put("status", HttpStatus.NOT_FOUND.value());
+        errorResponse.put("path", uri);
+
+        return ResponseEntity
+            .status(HttpStatus.NOT_FOUND)
+            .body(errorResponse);
+    }
+
+    /**
+     * Handles missing static resources (NoResourceFoundException).
+     * Ignores favicon.ico and static resources entirely, logs others as minor events.
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ResponseEntity<Map<String, Object>> handleNoResourceFound(NoResourceFoundException ex, HttpServletRequest request) {
+        var remoteIp = RequestUtils.getEffectiveRemoteIp(request);
+        var uri = request.getRequestURI();
+
+        // Skip logging for favicon and static resources
+        if (!uri.startsWith("/favicon") && !uri.startsWith("/static/")) {
+            log.debug("Static resource not found for request from IP: {}, URI: {}", remoteIp, uri);
+
+            try {
+                eventLoggingService.minorEvent(
+                    remoteIp,
+                    uri,
+                    HoneyEventType.HTTP,
+                    false,
+                    "Static resource not found",
+                    buildEventData(request, ex.getClass().getName(), ex.getResourcePath())
+                );
+            } catch (Exception loggingEx) {
+                log.warn("Failed to log event to database: {}", loggingEx.getMessage());
+            }
+        }
+
+        var errorResponse = new HashMap<String, Object>();
         errorResponse.put("error", "Not Found");
         errorResponse.put("message", "The requested resource was not found");
         errorResponse.put("status", HttpStatus.NOT_FOUND.value());

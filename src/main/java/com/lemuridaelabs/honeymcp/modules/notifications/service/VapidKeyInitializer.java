@@ -17,6 +17,21 @@ import java.security.spec.ECPoint;
 import java.time.Instant;
 import java.util.Base64;
 
+/**
+ * Component responsible for initializing VAPID keys on application startup.
+ *
+ * <p>VAPID (Voluntary Application Server Identification) keys are required for
+ * Web Push protocol authentication. This initializer generates a new EC key pair
+ * using the secp256r1 curve if no keys exist in the database.</p>
+ *
+ * <p>The keys are stored in base64url-encoded format as required by the Web Push
+ * specification.</p>
+ *
+ * @see VapidKey
+ * @see VapidKeyUtil
+ * @see VapidEncodingUtil
+ * @since 1.0
+ */
 @RequiredArgsConstructor
 @Component
 @Slf4j
@@ -73,11 +88,8 @@ public class VapidKeyInitializer {
 
         log.info("Generated Vapid push notification keys, result={}", result);
 
-        // Verify the key was actually saved
         var count = repository.count();
-        log.info("VAPID key count after save: {}", count);
-
-        if (count == 0) {
+        if (count <= 0) {
             log.error("VAPID key was not persisted to database! Transaction may have failed.");
         } else {
             log.info("VAPID key successfully persisted to database with ID: {}", result.getId());
@@ -96,9 +108,9 @@ public class VapidKeyInitializer {
      * @return raw public key bytes (65 bytes)
      */
     private byte[] extractRawPublicKey(ECPublicKey ecPublicKey) {
-        ECPoint point = ecPublicKey.getW();
-        BigInteger x = point.getAffineX();
-        BigInteger y = point.getAffineY();
+        var point = ecPublicKey.getW();
+        var x = point.getAffineX();
+        var y = point.getAffineY();
 
         // Convert to byte arrays (32 bytes each for P-256)
         byte[] xBytes = toByteArray(x, 32);
@@ -113,6 +125,7 @@ public class VapidKeyInitializer {
         return rawKey;
     }
 
+
     /**
      * Extracts the raw private key scalar from an ECPrivateKey.
      * For P-256 (secp256r1), this returns 32 bytes representing the secret scalar.
@@ -121,9 +134,10 @@ public class VapidKeyInitializer {
      * @return raw private key bytes (32 bytes)
      */
     private byte[] extractRawPrivateKey(ECPrivateKey ecPrivateKey) {
-        BigInteger s = ecPrivateKey.getS();
+        var s = ecPrivateKey.getS();
         return toByteArray(s, 32);
     }
+
 
     /**
      * Converts a BigInteger to a fixed-size byte array.

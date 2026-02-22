@@ -12,6 +12,20 @@ import javax.validation.constraints.NotNull;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Service for caching generated archive files and summaries.
+ *
+ * <p>Uses Caffeine cache to store generated archive file records and summaries,
+ * associating them with the requesting IP address. This prevents regeneration
+ * of content for the same requester and enables tracking of file access patterns.</p>
+ *
+ * <p>Cache entries expire after a configurable duration (default: 120 minutes)
+ * with a maximum cache size (default: 4096 entries).</p>
+ *
+ * @see ArchiveFileCacheWrapper
+ * @see ArchiveFileSummary
+ * @since 1.0
+ */
 @Service
 @Slf4j
 public class ArchiveCacheService {

@@ -13,7 +13,21 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 
+/**
+ * Security interceptor for protecting dashboard endpoints with token-based access control.
+ *
+ * <p>Validates the {@code token} query parameter against the configured access token.
+ * Invalid or missing tokens result in a 404 response to obscure the existence of the
+ * dashboard from attackers. Access attempts without valid tokens are logged as
+ * medium-severity events.</p>
+ *
+ * @see DashboardTokenService
+ * @see EventLoggingService
+ * @since 1.0
+ */
 @RequiredArgsConstructor
 @Component
 @Slf4j
@@ -48,8 +62,8 @@ public class DashboardAccessInterceptor implements HandlerInterceptor {
         // Get token from query parameter
         var providedToken = request.getParameter("token");
 
-        // Check if token is missing or invalid
-        if (providedToken == null || !dashboardTokenService.getAccessToken().equals(providedToken)) {
+        // Check if token is missing or invalid using constant-time comparison to prevent timing attacks
+        if (providedToken == null || !constantTimeEquals(dashboardTokenService.getAccessToken(), providedToken)) {
 
             log.warn("Dashboard access attempt without valid token - URI: {}, IP: {}, User-Agent: {}",
                     uri, getClientIP(request), request.getHeader("User-Agent"));
@@ -100,6 +114,26 @@ public class DashboardAccessInterceptor implements HandlerInterceptor {
             return xForwardedFor.split(",")[0].trim();
         }
         return request.getRemoteAddr();
+    }
+
+    /**
+     * Performs a constant-time comparison of two strings to prevent timing attacks.
+     *
+     * <p>Uses {@link MessageDigest#isEqual(byte[], byte[])} which compares byte arrays
+     * in constant time regardless of where differences occur, preventing attackers from
+     * using timing analysis to determine token characters.</p>
+     *
+     * @param expected the expected token value
+     * @param provided the provided token value to compare
+     * @return true if the strings are equal, false otherwise
+     */
+    private boolean constantTimeEquals(String expected, String provided) {
+        if (expected == null || provided == null) {
+            return expected == provided;
+        }
+        var expectedBytes = expected.getBytes(StandardCharsets.UTF_8);
+        var providedBytes = provided.getBytes(StandardCharsets.UTF_8);
+        return MessageDigest.isEqual(expectedBytes, providedBytes);
     }
 
 }

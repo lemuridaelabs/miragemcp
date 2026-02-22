@@ -7,6 +7,15 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.spec.ECGenParameterSpec;
 
+/**
+ * Utility class for generating VAPID key pairs.
+ *
+ * <p>Provides cryptographic key pair generation using the Elliptic Curve (EC) algorithm
+ * with the secp256r1 (P-256) curve, as required by the Web Push specification.</p>
+ *
+ * @see VapidKeyInitializer
+ * @since 1.0
+ */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class VapidKeyUtil {
 
@@ -18,8 +27,8 @@ public final class VapidKeyUtil {
      * @throws Exception if an error occurs during the key pair generation process
      */
     public static KeyPair generateKeyPair() throws Exception {
-        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("EC");
-        ECGenParameterSpec ecSpec = new ECGenParameterSpec("secp256r1");
+        var keyPairGenerator = KeyPairGenerator.getInstance("EC");
+        var ecSpec = new ECGenParameterSpec("secp256r1");
 
         keyPairGenerator.initialize(ecSpec);
         return keyPairGenerator.generateKeyPair();

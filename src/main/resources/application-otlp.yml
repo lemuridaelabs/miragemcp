@@ -1,0 +1,21 @@
+spring:
+  config:
+    activate:
+      on-profile: otlp
+
+management:
+  opentelemetry:
+    logging:
+      export:
+        otlp:
+          enabled: ${OTLP_LOGS_ENABLED:false}
+          endpoint: ${OTLP_LOGS_ENDPOINT:}
+          headers: ${OTLP_LOGS_HEADERS:}
+  otlp:
+    metrics:
+      export:
+        enabled: ${OTLP_METRICS_ENABLED:false}
+        url: ${OTLP_METRICS_ENDPOINT:}
+        headers: ${OTLP_METRICS_HEADERS:}
+        resourceAttributes:
+          - service.name: ${spring.application.name}

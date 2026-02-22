@@ -9,6 +9,16 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 
 import java.security.Security;
 
+/**
+ * Main Spring Boot application entry point for the HoneyMCP honeypot server.
+ *
+ * <p>HoneyMCP is a security research tool that implements a honeypot MCP (Model Context Protocol)
+ * server with threat detection, event logging, alert management, and push notification capabilities.
+ * It integrates with Spring AI for generating synthetic archive files as deceptive content.</p>
+ *
+ * @author Lemuridae Labs
+ * @since 1.0
+ */
 @SpringBootApplication
 @EnableConfigurationProperties({EventsConfig.class, AlertsConfig.class})
 public class HoneyMCPApplication {

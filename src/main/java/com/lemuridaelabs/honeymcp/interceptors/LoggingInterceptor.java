@@ -1,5 +1,7 @@
 package com.lemuridaelabs.honeymcp.interceptors;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lemuridaelabs.honeymcp.modules.events.dto.HoneyEventType;
 import com.lemuridaelabs.honeymcp.modules.events.service.EventLoggingService;
 import com.lemuridaelabs.honeymcp.utils.RequestUtils;
@@ -8,20 +10,39 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 import org.springframework.web.servlet.HandlerInterceptor;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.util.ContentCachingRequestWrapper;
 import org.springframework.web.util.ContentCachingResponseWrapper;
 
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 
+/**
+ * HTTP request/response logging interceptor for the honeypot.
+ *
+ * <p>Captures and logs all HTTP requests and responses, including request/response bodies
+ * (up to 5000 characters). Each request is recorded as a {@link HoneyEvent} for later
+ * analysis. MCP-related requests receive a higher threat score.</p>
+ *
+ * <p>Static resources and favicon requests are excluded from logging.</p>
+ *
+ * @see EventLoggingService
+ * @see HoneyEvent
+ * @since 1.0
+ */
 @RequiredArgsConstructor
 @Component
 @Slf4j
 public class LoggingInterceptor implements HandlerInterceptor {
 
+    private static final int MAX_BODY_CHARS = 5000;
+
     private final EventLoggingService eventLoggingService;
+    private final ObjectMapper objectMapper;
 
     /**
      * Intercepts an HTTP request before it reaches the controller.
@@ -52,7 +73,12 @@ public class LoggingInterceptor implements HandlerInterceptor {
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response,
                                 Object handler, Exception ex) {
 
-        String uri = request.getRequestURI();
+        // Skip logging for async request timeouts (normal for SSE connections)
+        if (ex instanceof AsyncRequestTimeoutException) {
+            return;
+        }
+
+        var uri = request.getRequestURI();
 
         // If we are letting this one go, just ignore it.
         //
@@ -64,43 +90,44 @@ public class LoggingInterceptor implements HandlerInterceptor {
         String responseBody = null;
 
         // Skip logging response bodies for dashboard endpoints to prevent recursive logging
-        boolean shouldCaptureResponseBody = !uri.startsWith("/dashboard");
+        var shouldCaptureResponseBody = !uri.startsWith("/dashboard");
 
         // Capture request body if available
-        if (request instanceof ContentCachingRequestWrapper) {
-            var wrappedRequest = (ContentCachingRequestWrapper) request;
+        if (request instanceof ContentCachingRequestWrapper wrappedRequest
+                && shouldCaptureBody(request.getContentType())) {
             var content = wrappedRequest.getContentAsByteArray();
             if (content.length > 0) {
-                requestBody = truncateIfNeeded(new String(content, StandardCharsets.UTF_8), 5000);
+                requestBody = truncateIfNeeded(new String(content, StandardCharsets.UTF_8), MAX_BODY_CHARS);
             }
         }
 
         // Capture response body if available (but not for dashboard endpoints)
-        if (shouldCaptureResponseBody && response instanceof ContentCachingResponseWrapper) {
-            var wrappedResponse = (ContentCachingResponseWrapper) response;
-            byte[] content = wrappedResponse.getContentAsByteArray();
+        if (shouldCaptureResponseBody
+                && response instanceof ContentCachingResponseWrapper wrappedResponse
+                && shouldCaptureBody(response.getContentType())) {
+            var content = wrappedResponse.getContentAsByteArray();
             if (content.length > 0) {
-                responseBody = truncateIfNeeded(new String(content, StandardCharsets.UTF_8), 5000);
+                responseBody = truncateIfNeeded(new String(content, StandardCharsets.UTF_8), MAX_BODY_CHARS);
             }
         }
 
         // Build data JSON string with request and response bodies
         //
-        var data = buildDataJson(request.getMethod(), requestBody, response.getStatus(), responseBody);
+        var userAgent = request.getHeader("User-Agent");
+        var acceptLanguage = request.getHeader("Accept-Language");
+        var data = buildDataJson(request.getMethod(), userAgent, acceptLanguage, requestBody, response.getStatus(), responseBody);
 
         var isMcp = isMcp(uri);
+        var message = String.format("%s %s - Status: %d", request.getMethod(), uri, response.getStatus());
+        var remoteIp = RequestUtils.getEffectiveRemoteIp(request);
 
-        // Log the complete event with a score based on the request target.
-        //
-        eventLoggingService.logEvent(
-                RequestUtils.getEffectiveRemoteIp(request),
-                uri,
-                HoneyEventType.HTTP,
-                isMcp,
-                isMcp ? 25 : 0,
-                String.format("%s %s - Status: %d", request.getMethod(), uri, response.getStatus()),
-                data
-        );
+        // Use minor severity for missing resources (404s), otherwise score based on request target
+        if (ex instanceof NoResourceFoundException) {
+            eventLoggingService.minorEvent(remoteIp, uri, HoneyEventType.HTTP, isMcp, message, data);
+        } else {
+            eventLoggingService.logEvent(remoteIp, uri, HoneyEventType.HTTP, isMcp,
+                    isMcp ? 25 : 0, message, data);
+        }
 
         // Log to console for immediate visibility (truncated for readability)
         log.info("Request: {} {} | Status: {} | Request Body: {} | Response Body: {}",
@@ -114,41 +141,34 @@ public class LoggingInterceptor implements HandlerInterceptor {
     /**
      * Builds a JSON string containing request and response body information.
      *
+     * <p>Uses Jackson ObjectMapper for proper JSON escaping and formatting,
+     * preventing XSS vulnerabilities from malicious request/response content.</p>
+     *
      * @param method the HTTP method
+     * @param userAgent the User-Agent header value
+     * @param acceptLanguage the Accept-Language header value
      * @param requestBody the request body content
      * @param status the HTTP response status code
      * @param responseBody the response body content
-     * @return JSON string with the data
+     * @return JSON string with the data, or empty JSON object if serialization fails
      */
-    private String buildDataJson(String method, String requestBody, int status, String responseBody) {
-
-        var dataMap = new HashMap<String, Object>();
-
+    private String buildDataJson(String method, String userAgent, String acceptLanguage,
+                                 String requestBody, int status, String responseBody) {
+        // Use LinkedHashMap to preserve insertion order for consistent output
+        var dataMap = new LinkedHashMap<String, Object>();
         dataMap.put("method", method);
-        dataMap.put("requestBody", requestBody != null ? requestBody : "N/A");
+        dataMap.put("userAgent", userAgent);
+        dataMap.put("acceptLanguage", acceptLanguage);
+        dataMap.put("requestBody", requestBody);
         dataMap.put("responseStatus", status);
-        dataMap.put("responseBody", responseBody != null ? responseBody : "N/A");
+        dataMap.put("responseBody", responseBody);
 
-        return String.format("{\"method\":\"%s\",\"requestBody\":%s,\"responseStatus\":%d,\"responseBody\":%s}",
-                method,
-                requestBody != null ? "\"" + escapeJson(requestBody) + "\"" : "null",
-                status,
-                responseBody != null ? "\"" + escapeJson(responseBody) + "\"" : "null");
-    }
-
-
-    /**
-     * Escapes special characters in JSON strings.
-     *
-     * @param value the string to escape
-     * @return escaped string
-     */
-    private String escapeJson(String value) {
-        return value.replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                .replace("\t", "\\t");
+        try {
+            return objectMapper.writeValueAsString(dataMap);
+        } catch (JsonProcessingException e) {
+            log.warn("Failed to serialize request/response data to JSON", e);
+            return "{}";
+        }
     }
 
     /**
@@ -174,6 +194,23 @@ public class LoggingInterceptor implements HandlerInterceptor {
      */
     private String truncateForLog(String value) {
         return truncateIfNeeded(value, 200);
+    }
+
+    private boolean shouldCaptureBody(String contentType) {
+        if (contentType == null) {
+            return true;
+        }
+        var normalized = contentType.toLowerCase(Locale.ROOT);
+        if (normalized.startsWith("multipart/")) {
+            return false;
+        }
+        return normalized.startsWith("text/")
+                || normalized.contains("json")
+                || normalized.contains("xml")
+                || normalized.contains("x-www-form-urlencoded")
+                || normalized.contains("yaml")
+                || normalized.contains("csv")
+                || normalized.contains("javascript");
     }
 
     /**

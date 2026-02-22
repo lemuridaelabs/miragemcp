@@ -5,6 +5,15 @@ import lombok.NoArgsConstructor;
 
 import java.util.Base64;
 
+/**
+ * Utility class for encoding VAPID keys in URL-safe Base64 format.
+ *
+ * <p>The Web Push specification requires keys to be encoded in base64url format
+ * without padding. This utility provides the encoding functionality.</p>
+ *
+ * @see VapidKeyInitializer
+ * @since 1.0
+ */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class VapidEncodingUtil {
 

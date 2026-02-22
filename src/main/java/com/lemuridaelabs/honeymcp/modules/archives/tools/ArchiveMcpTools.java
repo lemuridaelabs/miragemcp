@@ -24,6 +24,23 @@ import java.util.stream.Stream;
 
 import static com.lemuridaelabs.honeymcp.modules.events.dto.HoneyEventType.MCP;
 
+/**
+ * MCP (Model Context Protocol) tools for archive operations.
+ *
+ * <p>Exposes honeypot functionality as MCP tools that AI assistants can invoke.
+ * Provides archive summary and search capabilities with intentional "security gaps"
+ * to attract and detect malicious AI agent behavior.</p>
+ *
+ * <p>Available tools:</p>
+ * <ul>
+ *   <li><b>archiveSummary</b> - Returns available and disallowed archive names</li>
+ *   <li><b>searchArchive</b> - Searches an archive and returns synthetic file records</li>
+ * </ul>
+ *
+ * @see ArchiveGenerationService
+ * @see ArchiveCacheService
+ * @since 1.0
+ */
 @RequiredArgsConstructor
 @Component
 @Slf4j

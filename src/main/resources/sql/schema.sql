@@ -1,35 +1,36 @@
 SET SCHEMA PUBLIC;
 
-create table "honey_events"
+CREATE TABLE IF NOT EXISTS "honey_events"
 (
-    id         varchar(64) not null,
-    remote_ip  varchar(64),
-    uri        varchar(255),
-    event_type varchar(32),
-    is_mcp     boolean,
-    message    varchar(255),
-    score      int default 0,
-    data       varchar(16384),
-    timestamp  timestamp,
-    primary key (id)
+    id         VARCHAR(64) NOT NULL,
+    remote_ip  VARCHAR(64),
+    uri        VARCHAR(255),
+    event_type VARCHAR(32),
+    is_mcp     BOOLEAN,
+    message    VARCHAR(255),
+    score      INT DEFAULT 0,
+    data       VARCHAR(16384),
+    timestamp  TIMESTAMP,
+    PRIMARY KEY (id)
 );
 
-create index if not exists honey_events_idx_001 on "honey_events" (remote_ip);
+CREATE INDEX IF NOT EXISTS honey_events_idx_001 ON "honey_events" (remote_ip);
+CREATE INDEX IF NOT EXISTS honey_events_idx_002 ON "honey_events" (timestamp);
+CREATE INDEX IF NOT EXISTS honey_events_idx_003 ON "honey_events" (event_type);
+CREATE INDEX IF NOT EXISTS honey_events_idx_004 ON "honey_events" (remote_ip, timestamp);
 
-create table "honey_alerts"
+CREATE TABLE IF NOT EXISTS "honey_alerts"
 (
-    id        varchar(64) not null,
-    remote_ip varchar(64),
-    message   varchar(1024),
-    timestamp timestamp,
-    primary key (id)
+    id        VARCHAR(64) NOT NULL,
+    remote_ip VARCHAR(64),
+    message   VARCHAR(1024),
+    timestamp TIMESTAMP,
+    PRIMARY KEY (id)
 );
 
-create index if not exists honey_alerts_idx_001 on "honey_alerts" (remote_ip, timestamp);
+CREATE INDEX IF NOT EXISTS honey_alerts_idx_001 ON "honey_alerts" (remote_ip, timestamp);
 
---
-
-CREATE TABLE "vapid_keys"
+CREATE TABLE IF NOT EXISTS "vapid_keys"
 (
     id          BIGINT PRIMARY KEY,
     public_key  VARCHAR(1024) NOT NULL,
@@ -37,7 +38,7 @@ CREATE TABLE "vapid_keys"
     created_at  TIMESTAMP     NOT NULL
 );
 
-CREATE TABLE "push_subscription"
+CREATE TABLE IF NOT EXISTS "push_subscription"
 (
     id         BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     endpoint   VARCHAR(1024) NOT NULL UNIQUE,

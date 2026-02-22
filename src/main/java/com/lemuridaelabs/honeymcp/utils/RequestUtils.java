@@ -2,7 +2,16 @@ package com.lemuridaelabs.honeymcp.utils;
 
 import jakarta.servlet.http.HttpServletRequest;
 
-public class RequestUtils {
+/**
+ * Utility class for HTTP request handling operations.
+ *
+ * <p>Provides helper methods for extracting client information from HTTP requests,
+ * including proper handling of proxy headers like {@code X-Forwarded-For} and
+ * {@code CF-Connecting-IP} (Cloudflare).</p>
+ *
+ * @since 1.0
+ */
+public final class RequestUtils {
 
     /**
      * Retrieves the remote client's IP address from the given HttpServletRequest.

@@ -9,6 +9,17 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 
+/**
+ * Service for generating synthetic archive files using AI.
+ *
+ * <p>This service leverages Spring AI's ChatClient to generate realistic-looking
+ * synthetic file records based on configurable prompts. The generated files serve
+ * as deceptive content for the honeypot, appearing as legitimate internal documents.</p>
+ *
+ * @see ArchiveFileSummary
+ * @see ArchiveCacheService
+ * @since 1.0
+ */
 @RequiredArgsConstructor
 @Service
 @Slf4j

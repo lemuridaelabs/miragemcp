@@ -15,6 +15,22 @@ import java.util.List;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
+/**
+ * Security interceptor for detecting and handling malicious HTTP requests.
+ *
+ * <p>Analyzes incoming requests against a configurable set of URI patterns loaded from
+ * a CSV file. Patterns are matched using regular expressions and can trigger different
+ * actions based on confidence level:</p>
+ * <ul>
+ *   <li><b>block</b> - Returns 403 Forbidden and stops request processing</li>
+ *   <li><b>flag</b> - Logs the threat but allows the request to continue</li>
+ *   <li><b>log</b> - Records the detection for monitoring purposes</li>
+ * </ul>
+ *
+ * <p>Pattern categories align with OWASP security classifications for common attack vectors.</p>
+ *
+ * @since 1.0
+ */
 @Component
 @Slf4j
 public class MaliciousRequestIdentificationInterceptor implements HandlerInterceptor {
@@ -46,23 +62,31 @@ public class MaliciousRequestIdentificationInterceptor implements HandlerInterce
      * @throws IOException if an I/O error occurs while reading the resource
      */
     private List<UriPattern> loadPatterns(Resource resource) throws IOException {
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(resource.getInputStream()))) {
+        try (var reader = new BufferedReader(new InputStreamReader(resource.getInputStream()))) {
 
             return reader.lines()
                     .skip(1) // Skip header
                     .filter(line -> !line.trim().isEmpty())
                     .map(line -> {
-                        String[] parts = line.split(",", -1);
+                        var parts = line.split(",", -1);
+                        var patternString = parts[1];
+                        Pattern compiledPattern = null;
+                        try {
+                            compiledPattern = Pattern.compile(patternString, Pattern.CASE_INSENSITIVE);
+                        } catch (PatternSyntaxException e) {
+                            log.error("Invalid regex pattern during loading, will skip: {}", patternString, e);
+                        }
                         return new UriPattern(
                                 parts[0], // category
-                                parts[1], // pattern
+                                patternString, // original pattern string
+                                compiledPattern, // pre-compiled pattern
                                 parts[2], // description
                                 parts[3], // confidence_level
                                 parts[4], // action
                                 parts.length > 5 ? parts[5] : "" // owasp_category
                         );
                     })
+                    .filter(p -> p.compiledPattern() != null) // Filter out patterns that failed to compile
                     .toList();
         }
     }
@@ -86,11 +110,11 @@ public class MaliciousRequestIdentificationInterceptor implements HandlerInterce
     public boolean preHandle(HttpServletRequest request,
                              HttpServletResponse response,
                              Object handler) throws Exception {
-        String uri = request.getRequestURI();
-        String queryString = request.getQueryString();
-        String fullUri = queryString != null ? uri + "?" + queryString : uri;
+        var uri = request.getRequestURI();
+        var queryString = request.getQueryString();
+        var fullUri = queryString != null ? uri + "?" + queryString : uri;
 
-        List<UriPattern> matches = patterns.stream()
+        var matches = patterns.stream()
                 .filter(p -> matchesPattern(p, fullUri))
                 .toList();
 
@@ -102,21 +126,19 @@ public class MaliciousRequestIdentificationInterceptor implements HandlerInterce
     }
 
     /**
-     * Checks if the given full URI matches the pattern specified in the provided UriPattern.
-     * This is done using case-insensitive regular expression matching.
+     * Checks if the given full URI matches the pre-compiled pattern in the provided UriPattern.
+     * Uses the pre-compiled regex for efficient matching without recompilation overhead.
      *
-     * @param uriPattern the {@code UriPattern} containing the pattern to match against
+     * @param uriPattern the {@code UriPattern} containing the pre-compiled pattern to match against
      * @param fullUri the full URI string to be checked
      * @return {@code true} if the full URI matches the pattern; {@code false} otherwise
      */
     private boolean matchesPattern(UriPattern uriPattern, String fullUri) {
-        try {
-            Pattern pattern = Pattern.compile(uriPattern.pattern(), Pattern.CASE_INSENSITIVE);
-            return pattern.matcher(fullUri).find();
-        } catch (PatternSyntaxException e) {
-            log.error("Invalid regex pattern: {}", uriPattern.pattern(), e);
+        var compiledPattern = uriPattern.compiledPattern();
+        if (compiledPattern == null) {
             return false;
         }
+        return compiledPattern.matcher(fullUri).find();
     }
 
 
@@ -137,10 +159,10 @@ public class MaliciousRequestIdentificationInterceptor implements HandlerInterce
                                  String fullUri) throws IOException {
 
         // Check if any match requires blocking
-        boolean shouldBlock = matches.stream()
+        var shouldBlock = matches.stream()
                 .anyMatch(p -> "block".equals(p.action()));
 
-        boolean isCritical = matches.stream()
+        var isCritical = matches.stream()
                 .anyMatch(p -> "critical".equals(p.confidenceLevel()));
 
         log.info("URI status, uri={}, shouldBlock={}, isCritical={}.", fullUri, shouldBlock, isCritical);
@@ -187,13 +209,24 @@ public class MaliciousRequestIdentificationInterceptor implements HandlerInterce
      * @return the IP address of the client as a String
      */
     private String getClientIP(HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        var xForwardedFor = request.getHeader("X-Forwarded-For");
         if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
             return xForwardedFor.split(",")[0].trim();
         }
         return request.getRemoteAddr();
     }
 
-    record UriPattern(String category, String pattern, String description,
+    /**
+     * Record representing a URI pattern with pre-compiled regex for efficient matching.
+     *
+     * @param category the category of the malicious pattern (e.g., "SQL_INJECTION")
+     * @param patternString the original regex pattern string
+     * @param compiledPattern the pre-compiled regex pattern for efficient matching (null if pattern is invalid)
+     * @param description human-readable description of what the pattern detects
+     * @param confidenceLevel confidence level of the detection (e.g., "high", "medium", "critical")
+     * @param action the action to take when matched (e.g., "block", "flag", "log")
+     * @param owaspCategory the OWASP category this pattern relates to
+     */
+    record UriPattern(String category, String patternString, Pattern compiledPattern, String description,
                       String confidenceLevel, String action, String owaspCategory) {}
 }
