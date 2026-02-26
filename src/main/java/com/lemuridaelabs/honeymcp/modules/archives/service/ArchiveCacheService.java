@@ -116,6 +116,13 @@ public class ArchiveCacheService {
         return archiveFileCache;
     }
 
+    /**
+     * Retrieves the cache instance used to store {@link ArchiveFileSummary} objects.
+     * If the cache is not already initialized, a new cache is created with the configured
+     * expiration duration and maximum size.
+     *
+     * @return The {@code Cache} instance used for storing {@link ArchiveFileSummary} objects.
+     */
     private Cache<String, ArchiveFileSummary> getSummaryCache() {
 
         if (archiveSummaryCache != null) {

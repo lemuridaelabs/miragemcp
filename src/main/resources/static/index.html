@@ -100,6 +100,28 @@
             padding: 40px;
         }
 
+        .global-links {
+            margin-top: 40px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .global-links a {
+            color: #1e3a8a;
+            text-decoration: none;
+            text-transform: uppercase;
+        }
+
+        .global-links a:hover {
+            color: #0c4a6e;
+            text-decoration: underline;
+        }
+
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -341,6 +363,15 @@
                 </div>
 
                 <div class="feature">
+                    <div class="feature-icon">💬</div>
+                    <div class="feature-content">
+                        <h3>Real-Time Chat</h3>
+                        <p>Interactive AI chat lets you query archives, summarize files, and guide retrieval in real time
+                            through natural language conversations.</p>
+                    </div>
+                </div>
+
+                <div class="feature">
                     <div class="feature-icon">⚡</div>
                     <div class="feature-content">
                         <h3>Real-Time Processing</h3>
@@ -357,9 +388,21 @@
                             changes or previous iterations.</p>
                     </div>
                 </div>
+                <div class="feature">
+                    <div class="feature-icon">🧭</div>
+                    <div class="feature-content">
+                        <h3>Compliance Guidance</h3>
+                        <p>Built-in workflows help keep your document management fast and efficient, and keep the team
+                            in sync.</p>
+                    </div>
+                </div>
             </div>
         </div>
 
+        <div class="global-links">
+            <a href="/auth/login">Login</a>
+            <a href="/chat">Chat</a>
+        </div>
     </div>
 </div>
 
