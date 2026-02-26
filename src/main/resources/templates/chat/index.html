@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Archive System Chat</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            color-scheme: light;
+            --bg-1: #0b1426;
+            --bg-2: #142447;
+            --bg-3: #0f1c35;
+            --panel: #f5f7fb;
+            --panel-strong: #ffffff;
+            --ink: #0d1220;
+            --ink-muted: #41506b;
+            --accent: #f59e0b;
+            --accent-dark: #b45309;
+            --signal: #1d4ed8;
+            --signal-soft: #dbeafe;
+            --danger: #dc2626;
+            --border: rgba(15, 23, 42, 0.12);
+            --shadow: 0 22px 60px rgba(5, 15, 35, 0.25);
+            --font-sans: "Space Grotesk", "Segoe UI", sans-serif;
+            --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            font-family: var(--font-sans);
+            color: var(--ink);
+            background:
+                radial-gradient(circle at top left, rgba(245, 158, 11, 0.18), transparent 45%),
+                radial-gradient(circle at 30% 30%, rgba(29, 78, 216, 0.2), transparent 40%),
+                linear-gradient(135deg, var(--bg-1), var(--bg-2) 48%, var(--bg-3));
+            display: flex;
+            align-items: stretch;
+            justify-content: center;
+            padding: 32px 20px 60px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-image: linear-gradient(transparent 75%, rgba(255, 255, 255, 0.05) 75%),
+                linear-gradient(90deg, transparent 75%, rgba(255, 255, 255, 0.05) 75%);
+            background-size: 32px 32px;
+            opacity: 0.25;
+            pointer-events: none;
+        }
+
+        .page {
+            width: min(1120px, 100%);
+            z-index: 1;
+            display: grid;
+            gap: 24px;
+        }
+
+        .hero {
+            background: var(--panel-strong);
+            border-radius: 18px;
+            padding: 28px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            box-shadow: var(--shadow);
+        }
+
+        .hero-left {
+            display: flex;
+            gap: 18px;
+            align-items: center;
+        }
+
+        .logo {
+            background: #ffffff;
+            border-radius: 14px;
+            padding: 10px 14px;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+        }
+
+        .logo img {
+            display: block;
+            height: 54px;
+            width: auto;
+        }
+
+        .hero h1 {
+            font-size: 1.9rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .hero p {
+            color: var(--ink-muted);
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 18px;
+            border-radius: 999px;
+            background: var(--signal-soft);
+            color: var(--signal);
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            background: var(--signal);
+            box-shadow: 0 0 12px rgba(29, 78, 216, 0.6);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(4, 8, 18, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            z-index: 20;
+        }
+
+        .modal-overlay.hidden {
+            display: none;
+        }
+
+        .modal-content {
+            background: var(--panel-strong);
+            border-radius: 16px;
+            max-width: 560px;
+            width: 100%;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.35);
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            color: #ffffff;
+            padding: 26px 28px;
+        }
+
+        .modal-header h2 {
+            font-size: 1.6rem;
+            margin-bottom: 8px;
+        }
+
+        .modal-body {
+            padding: 24px 28px 28px;
+            color: var(--ink);
+            line-height: 1.7;
+        }
+
+        .modal-body p {
+            margin-bottom: 16px;
+            color: var(--ink-muted);
+        }
+
+        .modal-button {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            border: none;
+            padding: 14px 18px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--danger), #b91c1c);
+            color: #ffffff;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .record-modal {
+            max-width: 640px;
+        }
+
+        .record-modal .modal-header {
+            background: linear-gradient(135deg, #1d4ed8 0%, #0f172a 100%);
+        }
+
+        .record-modal .modal-button {
+            background: linear-gradient(135deg, #2563eb, #1e40af);
+        }
+
+        .record-modal .modal-button.secondary {
+            background: #e2e8f0;
+            color: var(--ink);
+        }
+
+        .record-modal .modal-body p {
+            margin-bottom: 10px;
+        }
+
+        .record-meta-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .record-meta {
+            background: #f1f5f9;
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 0.9rem;
+            color: var(--ink-muted);
+        }
+
+        .record-meta strong {
+            display: block;
+            color: var(--ink);
+            font-size: 0.85rem;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 24px;
+        }
+
+        .panel {
+            background: var(--panel);
+            border-radius: 18px;
+            padding: 24px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .chat-window {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            min-height: 540px;
+        }
+
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .message {
+            padding: 14px 16px;
+            border-radius: 12px;
+            line-height: 1.55;
+            white-space: pre-wrap;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+        }
+
+        .message.user {
+            align-self: flex-end;
+            background: #0f1e3a;
+            color: #f8fafc;
+        }
+
+        .message.assistant {
+            align-self: flex-start;
+            background: #ffffff;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+        }
+
+        .message-footer {
+            margin-top: 8px;
+            padding-top: 6px;
+            border-top: 1px solid rgba(15, 23, 42, 0.06);
+            font-size: 0.75rem;
+            color: var(--ink-muted);
+            font-family: var(--font-mono);
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .message.assistant.streaming::after {
+            content: "";
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            margin-left: 6px;
+            border-radius: 999px;
+            background: var(--accent);
+            animation: pulse 1.2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 0.6;
+            }
+            50% {
+                transform: scale(1.4);
+                opacity: 1;
+            }
+        }
+
+        .composer {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 12px;
+            align-items: end;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 90px;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            padding: 14px;
+            font-family: var(--font-sans);
+            font-size: 1rem;
+            resize: vertical;
+            background: #ffffff;
+        }
+
+        textarea:focus {
+            outline: 2px solid rgba(245, 158, 11, 0.4);
+            border-color: rgba(245, 158, 11, 0.6);
+        }
+
+        button {
+            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+            color: #ffffff;
+            border: none;
+            padding: 14px 26px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 12px 20px rgba(180, 83, 9, 0.25);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 16px 24px rgba(180, 83, 9, 0.35);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: default;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .record-list {
+            display: grid;
+            gap: 12px;
+            margin-top: 6px;
+        }
+
+        .record-card {
+            background: #f8fafc;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            border-radius: 12px;
+            padding: 12px 14px;
+            cursor: pointer;
+            transition: transform 0.2s ease, border 0.2s ease;
+        }
+
+        .record-card:hover {
+            transform: translateY(-1px);
+            border-color: rgba(15, 23, 42, 0.2);
+            background: #eef2ff;
+        }
+
+        .record-title {
+            font-weight: 600;
+            margin-bottom: 0;
+        }
+
+        .record-empty {
+            font-size: 0.9rem;
+            color: var(--ink-muted);
+        }
+
+        .sidebar h3 {
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+        }
+
+        .sidebar p {
+            color: var(--ink-muted);
+            line-height: 1.6;
+            margin-bottom: 14px;
+        }
+
+        .archive-controls {
+            display: grid;
+            gap: 12px;
+        }
+
+        .archive-controls label {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--ink-muted);
+        }
+
+        .archive-controls select {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(15, 23, 42, 0.15);
+            font-size: 1rem;
+            font-family: var(--font-sans);
+            background: #ffffff;
+            box-shadow: 0 10px 18px rgba(15, 23, 42, 0.08);
+        }
+
+        .archive-controls small {
+            color: var(--ink-muted);
+            font-size: 0.82rem;
+        }
+
+        .status-bar {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--ink-muted);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 8px;
+        }
+
+        .status-bar span {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-live {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: #22c55e;
+            box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
+        }
+
+        @media (max-width: 960px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .hero {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 20px 16px 40px;
+            }
+
+            .hero {
+                padding: 22px;
+            }
+
+            .panel {
+                padding: 20px;
+            }
+
+            .composer {
+                grid-template-columns: 1fr;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+<div id="authModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Authorized Access Only</h2>
+            <p>Security Notice</p>
+        </div>
+        <div class="modal-body">
+            <p>This system is restricted to authorized users only. Unauthorized access attempts are logged and may be subject to legal action.</p>
+            <p>By proceeding, you acknowledge that your activities are monitored and recorded in accordance with security policy.</p>
+            <button class="modal-button" type="button" onclick="closeModal()">I Understand - Continue</button>
+        </div>
+    </div>
+</div>
+
+<div id="recordModal" class="modal-overlay hidden">
+    <div class="modal-content record-modal">
+        <div class="modal-header">
+            <h2 id="recordTitle">Archive File Details</h2>
+            <p id="recordSubtitle">File record</p>
+        </div>
+        <div class="modal-body">
+            <p id="recordSummary"></p>
+            <div class="record-meta-grid">
+                <div class="record-meta"><strong>Size</strong><span id="recordSize"></span></div>
+                <div class="record-meta"><strong>Created</strong><span id="recordCreated"></span></div>
+                <div class="record-meta"><strong>Modified</strong><span id="recordModified"></span></div>
+                <div class="record-meta"><strong>Keywords</strong><span id="recordKeywords"></span></div>
+            </div>
+            <div style="margin-top: 18px;">
+                <a id="recordDownload" class="modal-button" href="#" download>Download File</a>
+            </div>
+            <div style="margin-top: 12px;">
+                <button class="modal-button secondary" type="button" onclick="closeRecordModal()">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="page">
+    <section class="hero">
+        <div class="hero-left">
+            <div class="logo">
+                <img src="/images/fas_logo.png" alt="File Archive System Logo">
+            </div>
+            <div>
+                <h1>File Archive System Chat</h1>
+                <p>Intelligent Document Management & Retrieval. Use the secure chat interface to search customers,
+                    orders, and inventory archives and request file details.</p>
+            </div>
+        </div>
+        <div class="status-pill">
+            <span class="status-dot"></span>
+            Online
+        </div>
+    </section>
+
+    <section class="layout">
+        <div class="panel chat-window">
+            <div class="messages" id="messages">
+                <div class=" assistant" style="text-align: center;">
+                    Welcome to the File Archive System chat interface. You can ask me to list available archives, search for files, or request more details about a specific file.
+                </div>
+            </div>
+
+            <div class="composer">
+                <textarea id="chatInput" placeholder="Ask to search an archive, for details on specific files, or other file activities."></textarea>
+                <button id="sendButton" type="button">Send</button>
+            </div>
+            <div class="status-bar">
+                <span><span class="status-live"></span> SSE streaming enabled</span>
+                <span id="sessionStatus">Session: initializing</span>
+            </div>
+        </div>
+
+        <aside class="panel sidebar">
+            <h3>Quick Archive Search</h3>
+            <p>Select an archive and launch a search for files. Restricted archives are marked with *.</p>
+            <div class="archive-controls">
+                <label for="archiveSelect">Archive</label>
+                <select id="archiveSelect">
+                    <option value="customers">customers</option>
+                    <option value="orders">orders</option>
+                    <option value="inventory">inventory</option>
+                    <option value="accounting">accounting *</option>
+                    <option value="users">users *</option>
+                </select>
+                <button id="archiveSearchButton" type="button">Search Archive</button>
+                <small>* Restricted archives are available for authorized access only.</small>
+            </div>
+        </aside>
+    </section>
+</div>
+
+<script>
+    const messagesEl = document.getElementById('messages');
+    const inputEl = document.getElementById('chatInput');
+    const sendButton = document.getElementById('sendButton');
+    const sessionStatus = document.getElementById('sessionStatus');
+    const archiveSelect = document.getElementById('archiveSelect');
+    const archiveSearchButton = document.getElementById('archiveSearchButton');
+
+    const recordModal = document.getElementById('recordModal');
+    const recordTitle = document.getElementById('recordTitle');
+    const recordSubtitle = document.getElementById('recordSubtitle');
+    const recordSummary = document.getElementById('recordSummary');
+    const recordSize = document.getElementById('recordSize');
+    const recordCreated = document.getElementById('recordCreated');
+    const recordModified = document.getElementById('recordModified');
+    const recordKeywords = document.getElementById('recordKeywords');
+    const recordDownload = document.getElementById('recordDownload');
+
+    let sessionId = null;
+    let eventSource = null;
+    let currentAssistantMessage = null;
+    let currentRecordsContainer = null;
+
+    function generateSessionId() {
+        if (window.crypto && window.crypto.randomUUID) {
+            return window.crypto.randomUUID();
+        }
+        return 'session-' + Math.random().toString(36).slice(2);
+    }
+
+    function getSessionId() {
+        return localStorage.getItem('fas-chat-session');
+    }
+
+    function setSessionId(value) {
+        if (value) {
+            localStorage.setItem('fas-chat-session', value);
+        }
+        sessionId = value;
+        sessionStatus.textContent = 'Session: ' + (value || 'unknown');
+    }
+
+    async function initSession() {
+        const existing = getSessionId();
+        if (existing) {
+            setSessionId(existing);
+            connectSseStream(existing);
+            return existing;
+        }
+
+        try {
+            const response = await fetch('/chat/session', { method: 'POST' });
+            if (response.ok) {
+                const data = await response.json();
+                if (data && data.conversationId) {
+                    setSessionId(data.conversationId);
+                    connectSseStream(data.conversationId);
+                    return data.conversationId;
+                }
+            }
+        } catch (error) {
+            console.warn('Session init failed', error);
+        }
+
+        const fallback = generateSessionId();
+        setSessionId(fallback);
+        connectSseStream(fallback);
+        return fallback;
+    }
+
+    function connectSseStream(conversationId) {
+        if (eventSource) {
+            eventSource.close();
+        }
+
+        eventSource = new EventSource('/chat/stream/' + encodeURIComponent(conversationId));
+
+        eventSource.onmessage = function(event) {
+            if (!currentAssistantMessage) {
+                return;
+            }
+            try {
+                var parsed = JSON.parse(event.data);
+                appendChunk(currentAssistantMessage, parsed.text);
+            } catch (e) {
+                appendChunk(currentAssistantMessage, event.data);
+            }
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        };
+
+        eventSource.addEventListener('done', function() {
+            if (!currentAssistantMessage) {
+                return;
+            }
+            const raw = currentAssistantMessage.dataset.raw || currentAssistantMessage.textContent || '';
+            setAssistantText(currentAssistantMessage, stripInternalIds(raw));
+            currentAssistantMessage.classList.remove('streaming');
+        });
+
+        eventSource.addEventListener('error', function(event) {
+            if (eventSource.readyState === EventSource.CLOSED) {
+                console.warn('SSE connection closed, will attempt reconnect');
+                setTimeout(() => connectSseStream(conversationId), 2000);
+            }
+            if (currentAssistantMessage && currentAssistantMessage.classList.contains('streaming')) {
+                appendChunk(currentAssistantMessage, '\n[stream error]');
+                currentAssistantMessage.classList.remove('streaming');
+                setStreamingState(false);
+            }
+        });
+
+        eventSource.onopen = function() {
+            console.log('SSE stream connected for session', conversationId);
+        };
+    }
+
+    function appendMessage(role, text) {
+        const message = document.createElement('div');
+        message.className = 'message ' + role;
+        if (role === 'assistant') {
+            message.dataset.raw = text;
+            message.innerHTML = markdownToHtml(text);
+        } else {
+            message.textContent = text;
+        }
+        messagesEl.appendChild(message);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+        return message;
+    }
+
+    function appendChunk(target, chunk) {
+        if (!chunk) {
+            return;
+        }
+        const current = target.textContent || '';
+        if (chunk.startsWith(' ') && (!current || /[\s\n]$/.test(current))) {
+            chunk = chunk.slice(1);
+        }
+        const raw = target.dataset.raw || '';
+        target.dataset.raw = raw + chunk;
+        target.innerHTML = markdownToHtml(target.dataset.raw);
+    }
+
+    function stripInternalIds(text) {
+        if (!text) {
+            return text;
+        }
+        const lines = text.split('\n');
+        const filtered = lines.filter(line => !line.match(/(^|\s)(id|identifier)\s*[:#]/i));
+        return filtered.join('\n').trim();
+    }
+
+    function escapeHtml(value) {
+        return value
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/\"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function markdownToHtml(text) {
+        if (!text) {
+            return '';
+        }
+        let output = escapeHtml(text);
+        output = output.replace(/`([^`]+)`/g, '<code>$1</code>');
+        output = output.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+        output = output.replace(/(^|\s)\*([^\s][^*]+)\*/g, '$1<em>$2</em>');
+        output = output.replace(/\n/g, '<br>');
+        return output;
+    }
+
+    function setAssistantText(target, text) {
+        const safeText = text || '';
+        target.dataset.raw = safeText;
+        target.innerHTML = markdownToHtml(safeText);
+    }
+
+    function setStreamingState(isStreaming) {
+        sendButton.disabled = isStreaming;
+    }
+
+    function formatBytes(bytes) {
+        if (bytes === null || bytes === undefined || Number.isNaN(Number(bytes))) {
+            return 'Unknown';
+        }
+        const size = Number(bytes);
+        if (size < 1024) {
+            return size + ' B';
+        }
+        const units = ['KB', 'MB', 'GB', 'TB'];
+        let value = size / 1024;
+        let unitIndex = 0;
+        while (value >= 1024 && unitIndex < units.length - 1) {
+            value /= 1024;
+            unitIndex += 1;
+        }
+        return value.toFixed(1) + ' ' + units[unitIndex];
+    }
+
+    function formatDate(value) {
+        if (!value) {
+            return 'Unknown';
+        }
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) {
+            return String(value);
+        }
+        return date.toLocaleString();
+    }
+
+    function renderRecords(container, records) {
+        container.innerHTML = '';
+        if (!records || records.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'record-empty';
+            container.appendChild(empty);
+            return;
+        }
+
+        records.forEach(record => {
+            const card = document.createElement('div');
+            card.className = 'record-card';
+            card.title = record.summary || '';
+
+            const title = document.createElement('div');
+            title.className = 'record-title';
+            title.textContent = record.name || 'Untitled file';
+
+            card.appendChild(title);
+            card.addEventListener('click', () => openRecordModal(record));
+
+            container.appendChild(card);
+        });
+    }
+
+    function openRecordModal(record) {
+        recordTitle.textContent = record.name || 'Archive File Details';
+        recordSubtitle.textContent = 'File record';
+        recordSummary.textContent = record.summary || 'No description available.';
+        recordSize.textContent = formatBytes(record.size);
+        recordCreated.textContent = formatDate(record.created);
+        recordModified.textContent = formatDate(record.modified);
+        recordKeywords.textContent = record.keywords && record.keywords.length
+            ? record.keywords.join(', ')
+            : 'None';
+
+        const downloadLink = record.dataUrl || record.uri;
+        if (downloadLink) {
+            recordDownload.href = downloadLink;
+            recordDownload.style.display = 'inline-flex';
+        } else {
+            recordDownload.style.display = 'none';
+        }
+
+        recordModal.classList.remove('hidden');
+    }
+
+    function closeRecordModal() {
+        recordModal.classList.add('hidden');
+    }
+
+    function closeModal() {
+        document.getElementById('authModal').classList.add('hidden');
+    }
+
+    async function sendMessage(text) {
+        const message = text.trim();
+        if (!message || !sessionId) {
+            return;
+        }
+
+        appendMessage('user', message);
+        inputEl.value = '';
+
+        const assistantMessage = appendMessage('assistant', '');
+        assistantMessage.classList.add('streaming');
+        currentAssistantMessage = assistantMessage;
+
+        const recordsContainer = document.createElement('div');
+        recordsContainer.className = 'record-list';
+        messagesEl.appendChild(recordsContainer);
+        currentRecordsContainer = recordsContainer;
+
+        setStreamingState(true);
+
+        try {
+            const response = await fetch('/chat/message', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    conversationId: sessionId,
+                    message: message
+                })
+            });
+
+            if (!response.ok) {
+                setAssistantText(assistantMessage, 'Unable to reach the chat service.');
+                assistantMessage.classList.remove('streaming');
+                setStreamingState(false);
+                return;
+            }
+
+            const data = await response.json();
+            renderRecords(recordsContainer, data.records || []);
+
+            var footer = document.createElement('div');
+            footer.className = 'message-footer';
+            var now = new Date();
+            var timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            var durationMs = data.durationMs || 0;
+            var durationStr = durationMs >= 1000
+                ? (durationMs / 1000).toFixed(1) + 's'
+                : durationMs + 'ms';
+            footer.innerHTML = '<span>' + timeStr + '</span><span>generated in ' + durationStr + '</span>';
+            assistantMessage.appendChild(footer);
+        } catch (error) {
+            if (assistantMessage.classList.contains('streaming')) {
+                appendChunk(assistantMessage, '\n[request error]');
+                assistantMessage.classList.remove('streaming');
+            }
+            renderRecords(recordsContainer, []);
+        } finally {
+            setStreamingState(false);
+            currentAssistantMessage = null;
+            currentRecordsContainer = null;
+        }
+    }
+
+    sendButton.addEventListener('click', () => sendMessage(inputEl.value));
+
+    inputEl.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            sendMessage(inputEl.value);
+        }
+    });
+
+    archiveSearchButton.addEventListener('click', () => {
+        const archive = archiveSelect.value;
+        if (!archive) {
+            return;
+        }
+        sendMessage(`List the files in the ${archive} archive`);
+    });
+
+    initSession();
+</script>
+</body>
+</html>

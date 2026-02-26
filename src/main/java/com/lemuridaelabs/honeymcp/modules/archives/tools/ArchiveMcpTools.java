@@ -2,6 +2,7 @@ package com.lemuridaelabs.honeymcp.modules.archives.tools;
 
 import com.lemuridaelabs.honeymcp.modules.archives.dto.ArchiveFileSummary;
 import com.lemuridaelabs.honeymcp.modules.archives.dto.ArchiveSummary;
+import com.lemuridaelabs.honeymcp.modules.archives.service.ArchiveCatalogService;
 import com.lemuridaelabs.honeymcp.modules.archives.service.ArchiveCacheService;
 import com.lemuridaelabs.honeymcp.modules.archives.service.ArchiveGenerationService;
 import com.lemuridaelabs.honeymcp.modules.events.service.EventLoggingService;
@@ -17,9 +18,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.Date;
-import java.util.List;
 import java.util.Set;
-import java.util.stream.Stream;
 
 import static com.lemuridaelabs.honeymcp.modules.events.dto.HoneyEventType.MCP;
 
@@ -51,11 +50,7 @@ public class ArchiveMcpTools {
 
     private final ArchiveCacheService archiveCacheService;
 
-    final List<String> availableArchives = List.of("customers", "orders", "inventory");
-    final List<String> disallowedArchives = List.of("accounting", "users");
-    final Set<String> allArchives = Set.copyOf(
-            Stream.concat(availableArchives.stream(), disallowedArchives.stream()).toList()
-    );
+    private final ArchiveCatalogService archiveCatalogService;
 
 
     /**
@@ -64,7 +59,7 @@ public class ArchiveMcpTools {
      * @return a set of strings representing the names of all archives
      */
     public Set<String> getAllArchives() {
-        return allArchives;
+        return archiveCatalogService.getAllArchives();
     }
 
 
@@ -87,8 +82,8 @@ public class ArchiveMcpTools {
 
             return ArchiveSummary.builder()
                     .userContext("ANONYMOUS")
-                    .availableArchives(availableArchives)
-                    .disallowedArchives(disallowedArchives)
+                    .availableArchives(archiveCatalogService.getAvailableArchives())
+                    .disallowedArchives(archiveCatalogService.getDisallowedArchives())
                     .timestamp(new Date())
                     .build();
         } catch (Exception e) {
@@ -118,12 +113,13 @@ public class ArchiveMcpTools {
             var attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
             var remoteIp = (attributes.getRequest() != null) ? attributes.getRequest().getRemoteAddr() : null;
 
+            var searchCount = count == null || count > 10 || count < 1 ? 10 : count;
+
             eventLoggingService.mediumEvent(
                     remoteIp,
                     null, MCP, true,
-                    String.format("Searching Archive Files archiveName=%s.", archiveName), null);
-
-            var searchCount = count == null || count > 10 || count < 1 ? 10 : count;
+                    String.format("Searching Archive Files archiveName=%s (count of %d).",
+                            archiveName, searchCount), null);
 
             log.info("Processing Archive Search Request, remoteIp={}, context={}, archiveName={}, searchCount={}.",
                     remoteIp, context, archiveName, searchCount);
@@ -133,7 +129,7 @@ public class ArchiveMcpTools {
                 return null;
             }
 
-            if (!allArchives.contains(archiveName.toLowerCase().trim())) {
+            if (!archiveCatalogService.getAllArchives().contains(archiveName.toLowerCase().trim())) {
                 context.error(String.format("An unknown archive was provided for searching. (%s)", archiveName));
                 return null;
             }

@@ -58,6 +58,10 @@ public class RequestResponseCachingFilter implements Filter {
      * @return true if caching should be skipped
      */
     private boolean shouldSkipCaching(String uri) {
-        return uri.startsWith("/sse") || uri.startsWith("/auth/login") || uri.equals("/") || uri.endsWith("png");
+        return uri.startsWith("/sse")
+                || uri.startsWith("/chat/stream")
+                || uri.startsWith("/auth/login")
+                || uri.equals("/")
+                || uri.endsWith("png");
     }
 }

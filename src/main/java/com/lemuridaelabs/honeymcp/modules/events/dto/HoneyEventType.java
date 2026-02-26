@@ -4,6 +4,7 @@ public enum HoneyEventType {
     LIFECYCLE,
     HTTP,
     MCP,
+    CHAT,
     DASHBOARD,
     API,
     ALERT
