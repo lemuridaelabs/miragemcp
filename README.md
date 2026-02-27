@@ -1,13 +1,13 @@
-# HoneyMCP
+# MirageMCP
 
-HoneyMCP is a Model Context Protocol (MCP) honeypot server designed to detect, log, and alert on malicious activity
+MirageMCP is a Model Context Protocol (MCP) honeypot server designed to detect, log, and alert on malicious activity
 targeting AI-enabled systems. It simulates vulnerable network services with synthetic data to attract and analyze both
 traditional HTTP attacks and malicious AI agent behavior.
 
 ## Table of Contents
 
 - [Overview](#overview)
-- [What HoneyMCP Simulates](#what-honeymcp-simulates)
+- [What MirageMCP Simulates](#what-mirageMCP-simulates)
 - [Background](#background)
     - [Honeypots in Security](#honeypots-in-security)
     - [Model Context Protocol](#model-context-protocol)
@@ -20,7 +20,7 @@ traditional HTTP attacks and malicious AI agent behavior.
 
 ## Overview
 
-HoneyMCP operates as a deceptive MCP server that simulates a document archive system. It presents itself as a
+MirageMCP operates as a deceptive MCP server that simulates a document archive system. It presents itself as a
 network-connected service with:
 
 - **MCP endpoints**: Full implementation of MCP tools, resources, prompts, and completions
@@ -31,7 +31,7 @@ network-connected service with:
 All interactions are logged with threat scoring. The system aggregates activity per source IP and generates alerts when
 behavior exceeds configurable thresholds.
 
-## What HoneyMCP Simulates
+## What MirageMCP Simulates
 
 The honeypot presents a fictional document archive service with the following components:
 
@@ -122,10 +122,10 @@ For the official MCP specification and implementation guides, see:
 
 ## Architecture
 
-HoneyMCP is built with Spring Boot and organized into functional modules:
+MirageMCP is built with Spring Boot and organized into functional modules:
 
 ```
-honeymcp/
+mirageMCP/
 ├── config/                 # Application configuration
 ├── filters/                # Request/response caching
 ├── interceptors/           # Request interception and detection
@@ -150,7 +150,7 @@ honeymcp/
 
 ## Configuration
 
-HoneyMCP is configured through environment variables:
+MirageMCP is configured through environment variables:
 
 ### Server Settings
 
@@ -166,16 +166,17 @@ HoneyMCP is configured through environment variables:
 |-----------------|---------|------------------------------------------------|
 | `DATABASE_PATH` | (none)  | Directory path for persistent database storage |
 
-By default, HoneyMCP uses an in-memory HSQLDB database. Data is lost when the application stops.
+By default, MirageMCP uses an in-memory HSQLDB database. Data is lost when the application stops.
 
 To enable persistent storage, set `DATABASE_PATH` to a directory where the database files should be stored. The
-application creates database files named `honeymcp.*` in that directory. If the database already exists, the application
+application creates database files named `mirageMCP.*` in that directory. If the database already exists, the
+application
 uses the existing data without recreating tables.
 
 For container deployments, mount a volume to the database path:
 
 ```bash
-docker run -v /host/data:/app/db -e DATABASE_PATH=/app/db honeymcp
+docker run -v /host/data:/app/db -e DATABASE_PATH=/app/db mirageMCP
 ```
 
 ### Dashboard Settings
@@ -257,7 +258,7 @@ Or with a compiled JAR:
 ```bash
 export OPENAI_KEY=your-api-key
 export DASHBOARD_ACCESS_TOKEN=your-secure-token
-java -jar target/honeymcp-*.jar
+java -jar target/mirageMCP-*.jar
 ```
 
 If you omit `DASHBOARD_ACCESS_TOKEN`, the application generates a random UUID and logs it to the console at startup.
@@ -284,7 +285,7 @@ Spring Boot and supports the container build process natively. To build a contai
 ./mvnw spring-boot:build-image
 ```
 
-This will generate a new docker container image tagged "honeymcp:1.0.0".
+This will generate a new docker container image tagged "mirageMCP:1.0.0".
 
 Note that this container is built on the Lemuridae Labs base image, which is a slim and secured Java runtime. You
 can use the default buildpack base images or create your own custom image using the jar file created in the 

@@ -7,7 +7,7 @@ spring:
   main:
     banner-mode: "off"
 
-honeymcp:
+miragemcp:
   dashboard:
     access-token: test-token
   notifications:

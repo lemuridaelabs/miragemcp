@@ -1,5 +1,5 @@
 /**
- * HoneyMCP Dashboard Service Worker
+ * Miragemcp Dashboard Service Worker
  * Handles push notifications for security alerts
  */
 
@@ -10,11 +10,11 @@ self.addEventListener('push', event => {
     console.log('[SW] Push notification received');
 
     let data = {
-        title: 'HoneyMCP Alert',
+        title: 'Miragemcp Alert',
         body: 'New security event detected',
         icon: '/dashboard/icon.png',
         badge: '/dashboard/badge.png',
-        tag: 'honeymcp-alert',
+        tag: 'miragemcp-alert',
         requireInteraction: true
     };
 

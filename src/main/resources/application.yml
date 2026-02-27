@@ -1,7 +1,7 @@
 server:
   port: ${SERVER_PORT:8989}
 
-honeymcp:
+miragemcp:
   database:
     path: ${DATABASE_PATH:}
   server:
@@ -23,7 +23,7 @@ honeymcp:
       high: ${EVENTS_WEIGHT_HIGH:75}
 spring:
   application:
-    name: honeymcp
+    name: miragemcp
   jackson:
     deserialization:
       ACCEPT_EMPTY_ARRAY_AS_NULL_OBJECT: true
