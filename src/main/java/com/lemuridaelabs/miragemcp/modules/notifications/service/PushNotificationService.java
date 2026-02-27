@@ -126,16 +126,10 @@ public class PushNotificationService {
     private void sendToSubscription(PushService pushService, String endpoint, String p256dh, String auth, String payload)
             throws GeneralSecurityException, IOException, JoseException, ExecutionException, InterruptedException {
 
-        // Create subscription object
-        var subscription = new Subscription(
-                endpoint,
-                new Subscription.Keys(p256dh, auth)
-        );
+        var subscription = new Subscription(endpoint, new Subscription.Keys(p256dh, auth));
 
-        // Create notification
         var notification = new Notification(subscription, payload);
 
-        // Send notification
         pushService.send(notification);
 
         log.debug("Push notification sent to endpoint: {}", endpoint);
