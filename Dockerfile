@@ -18,7 +18,7 @@ FROM lemuridaelabs/openjdk-java24-jre
 
 WORKDIR /app
 
-COPY --from=build /home/appuser/app/target/honeymcp-*.jar app.jar
+COPY --from=build /home/appuser/app/target/miragemcp-*.jar app.jar
 
 EXPOSE 8989
 

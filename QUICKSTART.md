@@ -1,6 +1,6 @@
-# HoneyMCP Quickstart
+# MirageMCP Quickstart
 
-This is a short, practical guide for getting HoneyMCP running. Choose one of the two paths below.
+This is a short, practical guide for getting MirageMCP running. Choose one of the two paths below.
 
 ## Path A: Build and Run From Source
 
@@ -49,7 +49,7 @@ Option B: keep the app on 8989 and use a reverse proxy to expose port 80.
 docker run --rm -p 80:8989 \
   -e OPENAI_KEY=your-api-key \
   -e DASHBOARD_ACCESS_TOKEN=your-secure-token \
-  lemuridaelabs/honeymcp
+  lemuridaelabs/miragemcp
 ```
 
 ### Optional: Persistent Storage
@@ -59,7 +59,7 @@ docker run --rm -p 80:8989 \
   -e DASHBOARD_ACCESS_TOKEN=your-secure-token \
   -e DATABASE_PATH=/app/db \
   -v /host/data:/app/db \
-  lemuridaelabs/honeymcp
+  lemuridaelabs/miragemcp
 ```
 
 If you omit `DASHBOARD_ACCESS_TOKEN`, the container will generate one and print it to logs.
@@ -70,7 +70,7 @@ If you omit `DASHBOARD_ACCESS_TOKEN`, the container will generate one and print 
 
 ## Advanced: OpenTelemetry (OTLP) Logging
 
-HoneyMCP supports optional OTLP logging/metrics export via the `otlp` Spring profile.
+MirageMCP supports optional OTLP logging/metrics export via the `otlp` Spring profile.
 Recommended: enable the profile and set the OTLP environment variables directly.
 
 ### Enable the OTLP Profile

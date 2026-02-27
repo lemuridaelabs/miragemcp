@@ -9,10 +9,10 @@
         <relativePath/>
     </parent>
     <groupId>com.lemuridaelabs</groupId>
-    <artifactId>honeymcp</artifactId>
+    <artifactId>miragemcp</artifactId>
     <version>1.0.0</version>
-    <name>honeymcp</name>
-    <description>Honeypot MCP Server</description>
+    <name>miragemcp</name>
+    <description>MirageMCP - A Honeypot Server</description>
     <properties>
         <java.version>24</java.version>
         <spring-ai.version>2.0.0-M2</spring-ai.version>
@@ -147,7 +147,7 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
                     <image>
-                        <name>lemuridaelabs/honeymcp:${project.version}</name>
+                        <name>lemuridaelabs/miragemcp:${project.version}</name>
                         <runImage>lemuridaelabs/openjdk-java24-jre:latest</runImage>
                     </image>
                     <excludes>
